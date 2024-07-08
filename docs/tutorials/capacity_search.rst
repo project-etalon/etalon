@@ -7,7 +7,7 @@ Capacity Search
 
 Capacity Search is a tool to help find maximal QPS given different SLOs. There are three types of SLOs:
 
-1. **Deadline based:** does QPS search based on deadline slo and deadline miss rate slo. Also leverages deadline-miss-rate percentile.
+1. **Fluidity-Index based:** does QPS search based on deadline slo and deadline miss rate (1 - *fluidity-index*) slo. Also leverages request-level deadline miss rate percentile.
 2. **TBT based:** does QPS search based on tbt and ttft slo with their percentiles.
 3. **TPOT based:** does QPS search based on ttft and tpot slo with their percentiles.
 
@@ -19,10 +19,8 @@ Below figure shows maximum capacity achieved for different SLOs for Llama-3-8B o
 
 Following sections explain running capacity search for each of the above SLOs.
 
-.. _deadline_based_slo:
-
-Deadline Based SLO
-~~~~~~~~~~~~~~~~~~
+Fluidity-Index Based SLO
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: shell
 
@@ -75,10 +73,4 @@ Caching
 ~~~~~~~
 
 The capacity search runs for given model and open source system are cached. This means, when we run capacity search again with different SLO type and values, the benchmark runs with previously explored QPS values will be used directly instead of doing new benchmark runs.
-
-
-Evaluating fluid-token-generation-rate
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Capacity search also helps in generation of :ref:`fluid-token-generation-rate` metric through ``Deadline Based SLO`` type. In :ref:`deadline_based_slo`, set ``--deadline-miss-rate-slo`` to ``0.1``, which implies *fluidity-index* of 0.9 and ``--deadline-miss-rate-percentile`` to ``0.99`` which means 99% of the requests should achieve *fluidity-index* of at least 0.9 as per the definition of :ref:`fluid-token-generation-rate`.
 

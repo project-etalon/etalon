@@ -27,6 +27,6 @@ Refer to :doc:`prefill_profiler` for more details on how to run prefill profiler
 
 Capacity Search
 ~~~~~~~~~~~~~~~
-``metron`` then runs capacity search to find the maximum QPS. Capacity search also helps in generation of :ref:`fluid-token-generation-rate` metric.
+``metron`` then runs capacity search to find the maximum QPS.
 
 Refer to :doc:`capacity_search` for more details on how to run capacity search.

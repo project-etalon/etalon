@@ -53,14 +53,12 @@ The *fluidity-index* is calculated as follows:
 
 .. _fluid-token-generation-rate:
 
-*fluid-token-generation-rate*
+*fluid token generation rate*
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. note::
 
-    *fluid-token-generation-rate* is a another new metric introduced by ``metron`` to evaluate LLM inference systems.
+    *fluid token generation rate* is a another new metric introduced by ``metron`` to evaluate LLM inference systems.
 
-*fluid-token-generation-rate* is defined as maximum queries per second (QPS) an inference system can serve such that 99% of the requests achieve fluidity-index of at-least 0.9. Higher *fluid-token-generation-rate* is better.
-
-*fluid-token-generation-rate* helps in comparing different inference systems based on their ability to support maximum queries per second while maintaining high fluidity-index, which is crucial for real-time user experience.
+*fluid token generation rate* is defined as maximum tokens per second an inference system can serve such that 99% of the requests achieve fluidity-index of at-least 0.9. Higher *fluid token generation rate* is better.
 

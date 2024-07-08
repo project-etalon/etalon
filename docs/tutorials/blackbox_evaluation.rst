@@ -25,7 +25,7 @@ Above figure depicts throughput measured by ``metron`` for different systems bas
 
 * TPOT
 * TBT
-* Deadline based on *fluidity-index*
+* *fluid-token-generation-rate*: Here we find minimum TBT latency such that 99% of requests have *fluidity-index* at least 0.9. Inverse of TBT latency is *fluid-token-generation-rate*.
 
 .. _tbt_cdf_api:
 

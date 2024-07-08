@@ -22,7 +22,9 @@ class RequestGeneratorConfig:
             args.request_interval_generator_provider
         )
         self.request_length_generator_provider = args.request_length_generator_provider
-        self.fixed_request_generator_prefill_tokens = args.fixed_request_generator_prefill_tokens
+        self.fixed_request_generator_prefill_tokens = (
+            args.fixed_request_generator_prefill_tokens
+        )
 
     def get_request_interval_generator_config(self):
         if self.request_interval_generator_provider == "gamma":

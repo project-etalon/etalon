@@ -37,9 +37,9 @@ It is defined as total execution time of request divided by the number of output
     *fluidity-index* is a new metric introduced by ``metron`` to evaluate LLM inference systems. It is designed to capture the nuances of LLM inference process and its impact on real-time user experience.
 
 
-Given prefill SLO and TBT SLO, *fluidity-index* is defined as fraction of tokens that satisfy the SLOs for a given request. It accounts for slack which is the difference between actual time taken to generate token and deadline for that token. That slack is used by subsequent tokens if current token is generated before deadline. Higher *fluidity-index* is better.
+Given target prefill and decode latencies, *fluidity-index* is defined as fraction of tokens that satisfy the target latencies for a given request. It accounts for slack which is the difference between actual time taken to generate token and deadline for that token. That slack is used by subsequent tokens if current token is generated before deadline. Higher *fluidity-index* is better.
 
-More formally, let prefill SLO be :math:`D_p` and TBT SLO be :math:`D_d`. Let :math:`D` be denoted as deadline for each token, where :math:`D = D_p` for first token and :math:`D = D_d` for subsequent tokens. Every token generation is characterized as a periodic task :math:`r_i = (t_i, d_i, s_i)`, where :math:`t_i` is the arrival time of :math:`i^{th}` token, :math:`d_i` is deadline for :math:`i^{th}` token,  (i.e., :math:`t_i + D + slack_{i-1}`) and :math:`s_i` is the actual time taken to generate :math:`i^{th}` token. 
+More formally, let target prefill latency be :math:`D_p` and target decode latency be :math:`D_d`. Let :math:`D` be denoted as deadline for each token, where :math:`D = D_p` for first token and :math:`D = D_d` for subsequent tokens. Every token generation is characterized as a periodic task :math:`r_i = (t_i, d_i, s_i)`, where :math:`t_i` is the arrival time of :math:`i^{th}` token, :math:`d_i` is deadline for :math:`i^{th}` token,  (i.e., :math:`t_i + D + slack_{i-1}`) and :math:`s_i` is the actual time taken to generate :math:`i^{th}` token. 
 
 If :math:`s_i + t_i \leq d_i`, then :math:`slack_{i} = slack_{i-1} + D - s_i`, else :math:`slack_{i} = 0`. :math:`slack_{0} = 0` for first token.
 

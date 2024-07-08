@@ -34,23 +34,40 @@ Benchmark can be run as shown below:
 
     python -m metron.run_benchmark \
     --model "meta-llama/Meta-Llama-3-8B-Instruct" \
-    --max-num-completed-requests 150 \
-    --timeout 600 \
-    --num-concurrent-requests 10 \
-    --output-dir "result_outputs" \
-    --request-interval-generator-provider "poisson" \
-    --poisson-request-interval-generator-qps 0.5 \
-    --request-length-generator-provider "trace" \
-    --trace-request-length-generator-trace-file "./data/processed_traces/arxiv_summarization_filtered_stats_llama2_tokenizer.csv" \
+    --max-num-completed-requests 20 \
+    --request-interval-generator-provider "gamma" \
+    --request-length-generator-provider "zipf" \
     --request-generator-max-tokens 8192 \
-    --ttft-deadline 0.3 \
-    --tbt-deadline 0.03 \
+    --output-dir "results"
+
+Be sure to update ``--model`` flag to same model used to launch vLLM.
+
+.. note::
+
+    ``metron`` supports different generator providers for request interval and request length. For more details, refer to :doc:`../guides/request_generator_providers`.
+
+.. _wandb_args_open_source_systems:
+
+Specifying wandb args [Optional]
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Optionally, you can also specify the following arguments to log results to wandb:
+
+.. code-block:: shell
+
     --should-write-metrics \
     --wandb-project Project \
     --wandb-group Group \
     --wandb-run-name Run
 
-Be sure to update ``--model`` flag to same model used to launch vLLM.
+Other Arguments
+^^^^^^^^^^^^^^^
+There are many more arguments for running benchmark, run the following to know more:
+
+.. code-block:: shell
+
+    python -m metron.run_benchmark -h
+
 
 Saving Results
 ~~~~~~~~~~~~~~~

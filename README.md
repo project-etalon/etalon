@@ -1,6 +1,20 @@
-# Metron
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/_static/logo/dark.png">
+    <img alt="vLLM" src="docs/_static/logo/light.png" width=50%>
+  </picture>
+</p>
 
-A tool for benchmarking the performance of LLM Inference Systems.
+<h3 align="center">
+Tool to benchmark LLM Inference Systems
+</h3>
+
+<p align="center">
+| <a href="https://project-metron.readthedocs.io/en/latest/"><b>Documentation</b></a> | <a href=""><b>Paper</b></a> |
+
+</p>
+
+---
 
 ## Setup
 

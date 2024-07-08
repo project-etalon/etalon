@@ -7,14 +7,20 @@ Capacity Search
 
 Capacity Search is a tool to help find maximal QPS given different SLOs. There are three types of SLOs:
 
-1. **Deadline based:** does QPS search based on deadline slo and deadline miss rate slo. Also leverages deadline-miss-rate percentile.
-2. **TBT-TTFT based:** does QPS search based on tbt and ttft slo with their percentiles.
-3. **TTFT-TPOT based:** does QPS search based on ttft and tpot slo with their percentiles.
+1. **Fluidity-Index based:** does QPS search based on deadline slo and deadline miss rate (1 - *fluidity-index*) slo. Also leverages request-level deadline miss rate percentile.
+2. **TBT based:** does QPS search based on tbt and ttft slo with their percentiles.
+3. **TPOT based:** does QPS search based on ttft and tpot slo with their percentiles.
+
+Below figure shows maximum capacity achieved for different SLOs for Llama-3-8B on different traces and open source systems on H100 GPU:
+
+.. image:: ../_static/assets/capacity_bars.png
+    :alt: capacity_bars
+    :align: center
 
 Following sections explain running capacity search for each of the above SLOs.
 
-Deadline Based SLO
-~~~~~~~~~~~~~~~~~~
+Fluidity-Index Based SLO
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: shell
 
@@ -33,8 +39,8 @@ Deadline Based SLO
 
     ``--profile-dir`` should point to where ``prefill_predictor.pkl`` model (obtained when running prefill profiler) is stored for a given model and open source system.
 
-TBT-TTFT Based SLO
-~~~~~~~~~~~~~~~~~~
+TBT Based SLO
+~~~~~~~~~~~~~
 
 .. code-block:: shell
 
@@ -48,8 +54,8 @@ TBT-TTFT Based SLO
     --max-iterations 10 \
     --config-path ./metron/capacity_search/config/llama_8b.yml
 
-TTFT-TPOT Based SLO
-~~~~~~~~~~~~~~~~~~~
+TPOT Based SLO
+~~~~~~~~~~~~~~
 
 .. code-block:: shell
 

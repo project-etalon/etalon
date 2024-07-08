@@ -1,5 +1,4 @@
-[Project Name]
-Copyright 2023-onwards Anyscale, Inc.
+Copyright 2024-onwards Systems for AI Lab, Georgia Institute of Technology.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

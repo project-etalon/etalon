@@ -1,6 +1,8 @@
 <p align="center">
-  <source srcset="docs/_static/logo/dark.png" media="(prefers-color-scheme: dark)">
-  <img src="docs/_static/logo/light.png" alt="metron" width=60%>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/_static/logo/dark.png">
+    <img alt="vLLM" src="docs/_static/logo/light.png" width=50%>
+  </picture>
 </p>
 
 <h3 align="center">

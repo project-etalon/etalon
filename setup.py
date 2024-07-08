@@ -64,10 +64,10 @@ setup(
     description="A framework for benchmarking LLM Inference Systems",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
-    url="https://github.com/gatech-sysml/metron",
+    url="https://github.com/project-metron/metron",
     project_urls={
-        "Homepage": "https://github.com/gatech-sysml/metron",
-        "Documentation": "https://gatech-sysml.github.io/metron/",
+        "Homepage": "https://github.com/project-metron/metron",
+        "Documentation": "project-metron.readthedocs.io",
     },
     classifiers=[
         "Programming Language :: Python :: 3.8",

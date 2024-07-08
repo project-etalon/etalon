@@ -1,0 +1,28 @@
+name: 💻 Usage
+description: Raise an issue here if you don't know how to use Metron.
+title: "[Usage]: "
+labels: ["usage"]
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      #### Before submitting an issue, please make sure the issue hasn't been already addressed by searching through [the existing and past issues](https://github.com/project-metron/metron/issues?q=is%3Aissue+sort%3Acreated-desc+).
+- type: textarea
+  attributes:
+    label: Your current environment
+    description: |
+      Please describe the environment you are running with including OS distribution and Python versions.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: How would you like to use Metron
+    description: |
+      A detailed description of how you want to use Metron.
+    value: |
+      I want to run inference of a [specific inference engine](put link here). I don't know how to integrate it with Metron.
+- type: markdown
+  attributes:
+    value: >
+      Thanks for contributing 🎉!

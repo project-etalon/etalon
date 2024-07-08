@@ -37,7 +37,7 @@ def release_resources_on_completion_or_error(func):
             self.release_resources()
             return return_data
         except Exception as e:
-            logger.error(f"Error in search: {e}", flush=True)
+            logger.error(f"Error in search: {e}")
             self.release_resources()
 
     return wrapper

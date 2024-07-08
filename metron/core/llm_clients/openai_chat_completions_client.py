@@ -92,7 +92,7 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
                 if response.status_code != 200:
                     error_msg = response.text
                     error_response_code = response.status_code
-                    logger.error(f"Request Error: {response.content}", flush=True)
+                    logger.error(f"Request Error: {response.content}")
                     response.raise_for_status()
 
                 for chunk in response.iter_lines(chunk_size=None):

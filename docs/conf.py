@@ -30,3 +30,11 @@ html_static_path = ["_static"]
 
 # -- Added configurations ----------------------------------------------------
 html_title = "metron"
+
+html_context = {
+    "display_github": True, # Integrate GitHub
+    "github_user": "project-metron", # Username
+    "github_repo": "metron", # Repo name
+    "github_version": "main", # Version
+    "conf_py_path": "/docs/", # Path in the checkout to the docs root
+}

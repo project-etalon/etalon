@@ -10,7 +10,7 @@ metron
 
 Serving large language models (LLMs) in production is very expensive, and this challenge has prompted recent advances in inference system optimizations. As of today, these systems are evaluated through conventional metrics like TTFT (time to first token), TBT (time between tokens), normalized latency, and TPOT (time per output token). However, these metrics fail to capture the nuances of LLM inference leading to incomplete assessment of user-facing performance in real-time applications like chat.
 
-``metron`` is a holistic performance evaluation framework that includes new metric, *fluidity-index*, alongside existing conventional metrics. This new metric reflects the intricacies of LLM inference process and its impact on real-time user experience.
+``metron`` is a holistic performance evaluation framework that includes new metrics, :ref:`fluidity-index` and :ref:`fluid-token-generation-rate`, alongside existing conventional metrics. The new metrics reflect the intricacies of LLM inference process and its impact on real-time user experience.
 
 ``metron`` is designed to be easy to use, and can be integrated with any LLM inference system. It is built on top of Ray, a popular distributed computing framework, and can be used to benchmark LLM inference systems on a single machine or a cluster.
 

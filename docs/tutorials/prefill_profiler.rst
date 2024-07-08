@@ -3,6 +3,12 @@ Prefill Profiler
 
 To profile prefill times of open source systems and create a prefill time predictor for a given model and open source system combination, based on input prompt length, we can run ``metron.prefill_profiler``.
 
+.. image:: ../_static/assets/yi-prefill-time-curve.png
+    :align: center
+    :scale: 50%
+
+Above figure shows prefill time curve for Yi-34B on 2 H100s. We can see that prefill time increases with prompt length quadratically.
+
 Launch any open source system and setup API keys and URL as shown in :doc:`open_source_systems`.
 
 And, then run the following command:

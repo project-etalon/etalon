@@ -434,13 +434,15 @@ def parse_args():
     args.add_argument(
         "--should-use-given-dir",  # added to prevent the creation of a new directories for the capacity search
         type=bool,
-        default=False,
-        help=("Whether to add a new directory for the results. (default: %(default)s)"),
+        default=True,
+        help=(
+            "Whether to add directly use --output-dir directory or create new directories for the results. (default: %(default)s)"
+        ),
     )
     args.add_argument(
         "--should-write-metrics",
         type=bool,
-        default=True,
+        default=False,
         action=argparse.BooleanOptionalAction,
         help=("Whether to write metrics to wandb. (default: %(default)s)"),
     )

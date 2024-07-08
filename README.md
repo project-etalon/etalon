@@ -1,404 +1,145 @@
-# LLMPerf
+# Metron
 
-A Tool for evaulation the performance of LLM APIs.
+A tool for benchmarking the performance of LLM Inference Systems.
 
-# Installation
+## Setup
+
+### Clone repository
 ```bash
-git clone https://github.com/ray-project/llmperf.git
-cd llmperf
+git clone https://github.com/gatech-sysml/metron.git
+```
+
+### Create conda environment
+```bash
+conda create -n metron python=3.10
+conda activate metron
+```
+
+### Install Metron
+```bash
+cd metron
 pip install -e .
 ```
 
-# Basic Usage
-
-We implement 2 tests for evaluating LLMs: a load test to check for performance and a correctness test to check for correctness.
-
-## Load test
-
-The load test spawns a number of concurrent requests to the LLM API and measures the inter-token latency and generation throughput per request and across concurrent requests. The prompt that is sent with each request is of the format:
-
-```
-Randomly stream lines from the following text. Don't generate eos tokens:
-LINE 1,
-LINE 2,
-LINE 3,
-...
+#### Installing with vLLM (optional)
+```bash
+pip install -e ".[vllm]"
 ```
 
-Where the lines are randomly sampled from a collection of lines from Shakespeare sonnets. Tokens are counted using the `LlamaTokenizer` regardless of which LLM API is being tested. This is to ensure that the prompts are consistent across different LLM APIs.
+### Setup Wandb [Optional]
+First create and setup your account at `https://<your-org>.wandb.io/` or public Wandb and obtain API key. Then run the following command and enter API key linked to your wandb account:
+```bash
+wandb login --host https://<your-org>.wandb.io
+```
+To opt out of wandb, do any of the following:
+1. Don't pass any wandb related args like `--wandb-project`, `--wandb-group` and `wandb-run-name` when running python scripts. Alternatively, pass in `--no-should-write-metrics` instead of `--should-write-metrics` boolean flag.
+2. Run `export WANDB_MODE=disabled` in your shell or add this to `~/.zshrc` or `~/.bashrc`. Remember to reload your shell using `source ~/.zshrc` or `source ~/.bashrc`.
 
-To run the most basic load test you can the token_benchmark_ray script.
+## Running Code
 
-
-### Caveats and Disclaimers
-
-- The endpoints provider backend might vary widely, so this is not a reflection on how the software runs on a particular hardware.
-- The results may vary with time of day.
-- The results may vary with the load.
-- The results may not correlate with users’ workloads.
-
-### OpenAI Compatible APIs
+### Running with Public APIs
+#### Export API Key and URL
 ```bash
 export OPENAI_API_KEY=secret_abcdefg
-export OPENAI_API_BASE="https://api.endpoints.anyscale.com/v1"
-
-python token_benchmark_ray.py \
---model "meta-llama/Llama-2-7b-chat-hf" \
---mean-input-tokens 550 \
---stddev-input-tokens 150 \
---mean-output-tokens 150 \
---stddev-output-tokens 10 \
---max-num-completed-requests 2 \
---timeout 600 \
---num-concurrent-requests 1 \
---results-dir "result_outputs" \
---llm-api openai \
---additional-sampling-params '{}'
-
+export OPENAI_API_BASE=https://api.endpoints.anyscale.com/v1
 ```
-
-### Anthropic
+#### Running Benchmark
 ```bash
-export ANTHROPIC_API_KEY=secret_abcdefg
-
-python token_benchmark_ray.py \
---model "claude-2" \
---mean-input-tokens 550 \
---stddev-input-tokens 150 \
---mean-output-tokens 150 \
---stddev-output-tokens 10 \
---max-num-completed-requests 2 \
---timeout 600 \
---num-concurrent-requests 1 \
---results-dir "result_outputs" \
---llm-api anthropic \
---additional-sampling-params '{}'
-
-```
-
-### TogetherAI
-
-```bash
-export TOGETHERAI_API_KEY="YOUR_TOGETHER_KEY"
-
-python token_benchmark_ray.py \
---model "together_ai/togethercomputer/CodeLlama-7b-Instruct" \
---mean-input-tokens 550 \
---stddev-input-tokens 150 \
---mean-output-tokens 150 \
---stddev-output-tokens 10 \
---max-num-completed-requests 2 \
---timeout 600 \
---num-concurrent-requests 1 \
---results-dir "result_outputs" \
---llm-api "litellm" \
---additional-sampling-params '{}'
-
-```
-
-### Hugging Face
-
-```bash
-export HUGGINGFACE_API_KEY="YOUR_HUGGINGFACE_API_KEY"
-export HUGGINGFACE_API_BASE="YOUR_HUGGINGFACE_API_ENDPOINT"
-
-python token_benchmark_ray.py \
---model "huggingface/meta-llama/Llama-2-7b-chat-hf" \
---mean-input-tokens 550 \
---stddev-input-tokens 150 \
---mean-output-tokens 150 \
---stddev-output-tokens 10 \
---max-num-completed-requests 2 \
---timeout 600 \
---num-concurrent-requests 1 \
---results-dir "result_outputs" \
---llm-api "litellm" \
---additional-sampling-params '{}'
-
-```
-
-### LiteLLM
-
-LLMPerf can use LiteLLM to send prompts to LLM APIs. To see the environment variables to set for the provider and arguments that one should set for model and additional-sampling-params.
-
-see the [LiteLLM Provider Documentation](https://docs.litellm.ai/docs/providers).
-
-```bash
-python token_benchmark_ray.py \
---model "meta-llama/Llama-2-7b-chat-hf" \
---mean-input-tokens 550 \
---stddev-input-tokens 150 \
---mean-output-tokens 150 \
---stddev-output-tokens 10 \
---max-num-completed-requests 2 \
---timeout 600 \
---num-concurrent-requests 1 \
---results-dir "result_outputs" \
---llm-api "litellm" \
---additional-sampling-params '{}'
-
-```
-
-### Vertex AI
-
-Here, --model is used for logging, not for selecting the model. The model is specified in the Vertex AI Endpoint ID.
-
-The GCLOUD_ACCESS_TOKEN needs to be somewhat regularly set, as the token generated by `gcloud auth print-access-token` expires after 15 minutes or so.
-
-Vertex AI doesn't return the total number of tokens that are generated by their endpoint, so tokens are counted using the LLama tokenizer.
-
-```bash
-
-gcloud auth application-default login
-gcloud config set project YOUR_PROJECT_ID
-
-export GCLOUD_ACCESS_TOKEN=$(gcloud auth print-access-token)
-export GCLOUD_PROJECT_ID=YOUR_PROJECT_ID
-export GCLOUD_REGION=YOUR_REGION
-export VERTEXAI_ENDPOINT_ID=YOUR_ENDPOINT_ID
-
-python token_benchmark_ray.py \
---model "meta-llama/Llama-2-7b-chat-hf" \
---mean-input-tokens 550 \
---stddev-input-tokens 150 \
---mean-output-tokens 150 \
---stddev-output-tokens 10 \
---max-num-completed-requests 2 \
---timeout 600 \
---num-concurrent-requests 1 \
---results-dir "result_outputs" \
---llm-api "vertexai" \
---additional-sampling-params '{}'
-
-```
-
-### SageMaker
-
-SageMaker doesn't return the total number of tokens that are generated by their endpoint, so tokens are counted using the LLama tokenizer.
-
-```bash
-
-export AWS_ACCESS_KEY_ID="YOUR_ACCESS_KEY_ID"
-export AWS_SECRET_ACCESS_KEY="YOUR_SECRET_ACCESS_KEY"s
-export AWS_SESSION_TOKEN="YOUR_SESSION_TOKEN"
-export AWS_REGION_NAME="YOUR_ENDPOINTS_REGION_NAME"
-
-python llm_correctness.py \
---model "llama-2-7b" \
---llm-api "sagemaker" \
---max-num-completed-requests 2 \
---timeout 600 \
---num-concurrent-requests 1 \
---results-dir "result_outputs" \
-
-```
-
-see `python token_benchmark_ray.py --help` for more details on the arguments.
-
-## Correctness Test
-
-The correctness test spawns a number of concurrent requests to the LLM API with the following format:
-
-```
-Convert the following sequence of words into a number: {random_number_in_word_format}. Output just your final answer.
-```
-
-where random_number_in_word_format could be for example "one hundred and twenty three". The test then checks that the response contains that number in digit format which in this case would be 123.
-
-The test does this for a number of randomly generated numbers and reports the number of responses that contain a mismatch.
-
-To run the most basic correctness test you can run the the llm_correctness.py script.
-
-### OpenAI Compatible APIs
-
-```bash
-export OPENAI_API_KEY=secret_abcdefg
-export OPENAI_API_BASE=https://console.endpoints.anyscale.com/m/v1
-
-python llm_correctness.py \
---model "meta-llama/Llama-2-7b-chat-hf" \
+python -m metron.run_benchmark \
+--model "meta-llama/Meta-Llama-3-8B-Instruct" \
 --max-num-completed-requests 150 \
 --timeout 600 \
 --num-concurrent-requests 10 \
---results-dir "result_outputs"
+--output-dir "result_outputs" \
+--request-interval-generator-provider "poisson" \
+--poisson-request-interval-generator-qps 0.5 \
+--request-length-generator-provider "trace" \
+--trace-request-length-generator-trace-file "./data/processed_traces/arxiv_summarization_filtered_stats_llama2_tokenizer.csv" \
+--request-generator-max-tokens 8192 \
+--ttft-deadline 0.3 \
+--tbt-deadline 0.03 \
+--should-write-metrics \
+--wandb-project Project \
+--wandb-group Group \
+--wandb-run-name Run
 ```
 
-### Anthropic
-
+There are many more arguments for running benchmark, run the following to know more:
 ```bash
-export ANTHROPIC_API_KEY=secret_abcdefg
+python -m metron.run_benchmark -h
+```
 
-python llm_correctness.py \
---model "claude-2" \
---llm-api "anthropic"  \
---max-num-completed-requests 5 \
+### Running with Open Source Systems
+Metron can be run with any open source LLM inference system. If open source system does not provide OpenAI Compatible APIs, then kindly implement new LLM clients to support new open source system as explained in [here](#implementing-new-llm-clients).
+
+Here we give an example with vLLM.
+
+#### Launch vLLM Server
+```bash
+python -m vllm.entrypoints.openai.api_server --model meta-llama/Meta-Llama-3-8B-Instruct --dtype auto --api-key token-abc123 -tp 1 --rope-scaling '{"type":"dynamic","factor":2.0}'
+```
+
+If we need higher context length than supported by the model with certain scale factor, then we can add rope-scaling as `--rope-scaling '{"type":"dynamic","factor":2.0}'`. Adjust type and factor as per the use case.
+
+#### Export API Key and URL
+```bash
+export OPENAI_API_KEY=token-abc123
+export OPENAI_API_BASE=http://localhost:8000/v1
+```
+
+And then we can run the benchmark as shown [here](#running-benchmark). Be sure to update `--model` flag to same model used to launch vLLM.
+
+### Saving Results
+
+The results of the benchmark are saved in the results directory specified by the `--output-dir` argument.
+
+## Running Prefill Profiler
+To profile prefill times of open source systems and create a prefill time predictor for a given model and open source system, based on input prompt length, we can run `metron.prefill_profiler`.
+
+Launch any open source system and setup API keys and URL as shown for [vLLM](#running-with-open-source-systems).
+```bash
+python -m metron.prefill_profiler \
+--model "meta-llama/Meta-Llama-3-8B-Instruct" \
+--max-num-completed-requests 1 \
 --timeout 600 \
 --num-concurrent-requests 1 \
---results-dir "result_outputs"
+--fixed-request-generator-decode-tokens 16 \
+--output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b" \
+--should-use-given-dir true
 ```
 
-### TogetherAI
-
+To modify range of prompt tokens for which prefill times get profiled, use the flag ``--prefill-lengths`` as follows:
 ```bash
-export TOGETHERAI_API_KEY="YOUR_TOGETHER_KEY"
-
-python llm_correctness.py \
---model "together_ai/togethercomputer/CodeLlama-7b-Instruct" \
---llm-api "litellm" \
---max-num-completed-requests 2 \
+python -m metron.prefill_profiler \
+--model "meta-llama/Meta-Llama-3-8B-Instruct" \
+--max-num-completed-requests 1 \
 --timeout 600 \
 --num-concurrent-requests 1 \
---results-dir "result_outputs" \
-
+--fixed-request-generator-decode-tokens 16 \
+--output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b" \
+--should-use-given-dir true \
+--prefill-lengths 256 512 1024 2048 4096 8192 16384 32768 65536
 ```
 
-### Hugging Face
+## Running Capacity Search
+`Important`: Run prefill profiler for a given model and open source system before running capacity search of `deadline-based` SLO type.
 
-```bash
-export HUGGINGFACE_API_KEY="YOUR_HUGGINGFACE_API_KEY"
-export HUGGINGFACE_API_BASE="YOUR_HUGGINGFACE_API_ENDPOINT"
+Refer to [readme](metron/capacity_search/README.md) file of `metron/capacity_search` folder to know more about how to run capacity search.
 
-python llm_correctness.py \
---model "huggingface/meta-llama/Llama-2-7b-chat-hf" \
---llm-api "litellm" \
---max-num-completed-requests 2 \
---timeout 600 \
---num-concurrent-requests 1 \
---results-dir "result_outputs" \
+## Implementing New LLM Clients
 
-```
-
-### LiteLLM
-
-LLMPerf can use LiteLLM to send prompts to LLM APIs. To see the environment variables to set for the provider and arguments that one should set for model and additional-sampling-params.
-
-see the [LiteLLM Provider Documentation](https://docs.litellm.ai/docs/providers).
-
-```bash
-python llm_correctness.py \
---model "meta-llama/Llama-2-7b-chat-hf" \
---llm-api "litellm" \
---max-num-completed-requests 2 \
---timeout 600 \
---num-concurrent-requests 1 \
---results-dir "result_outputs" \
-
-```
-
-see `python llm_correctness.py --help` for more details on the arguments.
-
-
-### Vertex AI
-
-Here, --model is used for logging, not for selecting the model. The model is specified in the Vertex AI Endpoint ID.
-
-The GCLOUD_ACCESS_TOKEN needs to be somewhat regularly set, as the token generated by `gcloud auth print-access-token` expires after 15 minutes or so.
-
-Vertex AI doesn't return the total number of tokens that are generated by their endpoint, so tokens are counted using the LLama tokenizer.
-
-
-```bash
-
-gcloud auth application-default login
-gcloud config set project YOUR_PROJECT_ID
-
-export GCLOUD_ACCESS_TOKEN=$(gcloud auth print-access-token)
-export GCLOUD_PROJECT_ID=YOUR_PROJECT_ID
-export GCLOUD_REGION=YOUR_REGION
-export VERTEXAI_ENDPOINT_ID=YOUR_ENDPOINT_ID
-
-python llm_correctness.py \
---model "meta-llama/Llama-2-7b-chat-hf" \
---llm-api "vertexai" \
---max-num-completed-requests 2 \
---timeout 600 \
---num-concurrent-requests 1 \
---results-dir "result_outputs" \
-
-```
-
-### SageMaker
-
-SageMaker doesn't return the total number of tokens that are generated by their endpoint, so tokens are counted using the LLama tokenizer.
-
-```bash
-
-export AWS_ACCESS_KEY_ID="YOUR_ACCESS_KEY_ID"
-export AWS_SECRET_ACCESS_KEY="YOUR_SECRET_ACCESS_KEY"s
-export AWS_SESSION_TOKEN="YOUR_SESSION_TOKEN"
-export AWS_REGION_NAME="YOUR_ENDPOINTS_REGION_NAME"
-
-python llm_correctness.py \
---model "llama-2-7b" \
---llm-api "sagemaker" \
---max-num-completed-requests 2 \
---timeout 600 \
---num-concurrent-requests 1 \
---results-dir "result_outputs" \
-
-```
-
-## Saving Results
-
-The results of the load test and correctness test are saved in the results directory specified by the `--results-dir` argument. The results are saved in 2 files, one with the summary metrics of the test, and one with metrics from each individual request that is returned.
-
-# Advanced Usage
-
-The correctness tests were implemented with the following workflow in mind:
-
-```python
-import ray
-from transformers import LlamaTokenizerFast
-
-from llmperf.ray_clients.openai_chat_completions_client import (
-    OpenAIChatCompletionsClient,
-)
-from llmperf.models import RequestConfig
-from llmperf.requests_launcher import RequestsLauncher
-
-
-# Copying the environment variables and passing them to ray.init() is necessary
-# For making any clients work.
-ray.init(runtime_env={"env_vars": {"OPENAI_API_BASE" : "https://api.endpoints.anyscale.com/v1",
-                                   "OPENAI_API_KEY" : "YOUR_API_KEY"}})
-
-base_prompt = "hello_world"
-tokenizer = LlamaTokenizerFast.from_pretrained(
-    "hf-internal-testing/llama-tokenizer"
-)
-base_prompt_len = len(tokenizer.encode(base_prompt))
-prompt = (base_prompt, base_prompt_len)
-
-# Create a client for spawning requests
-clients = [OpenAIChatCompletionsClient.remote()]
-
-req_launcher = RequestsLauncher(clients)
-
-req_config = RequestConfig(
-    model="meta-llama/Llama-2-7b-chat-hf",
-    prompt=prompt
-    )
-
-req_launcher.launch_requests(req_config)
-result = req_launcher.get_next_ready(block=True)
-print(result)
-
-```
-
-# Implementing New LLM Clients
-
-To implement a new LLM client, you need to implement the base class `llmperf.ray_llm_client.LLMClient` and decorate it as a ray actor.
+To implement a new LLM client, you need to implement the base class `metron.llm_client.BaseLLMClient` and decorate it as a ray actor.
 
 ```python
 
-from llmperf.ray_llm_client import LLMClient
+from metron.llm_client import BaseLLMClient
 import ray
 
 
 @ray.remote
-class CustomLLMClient(LLMClient):
+class CustomLLMClient(BaseLLMClient):
 
-    def llm_request(self, request_config: RequestConfig) -> Tuple[Metrics, str, RequestConfig]:
+    def send_llm_request(self, request_config: RequestConfig) -> Tuple[Metrics, str, RequestConfig]:
         """Make a single completion request to a LLM API
 
         Returns:
@@ -411,5 +152,18 @@ class CustomLLMClient(LLMClient):
 
 ```
 
-# Legacy Codebase
-The old LLMPerf code base can be found in the [llmperf-legacy](https://github.com/ray-project/llmval-legacy) repo.
+
+## Citation
+If you use our work, please consider citing our paper:
+```cite
+@article{agrawal2024metron,
+  title={Metron: Holistic Performance Evaluation Framework for LLM Inference Systems},
+  author={Agrawal, Amey and Agarwal, Anmol and Kedia, Nitin and Mohan, Jayashree and Kundu, Souvik and Kwatra, Nipun and Ramjee, Ramachandran and Tumanov, Alexey},
+  journal={},
+  year={2024}
+}
+```
+
+## Acknowledgement
+This repository was originally created as fork from [LLMPerf](https://github.com/ray-project/llmperf) project.
+

@@ -1,2 +1,3 @@
 # For lints
 black
+isort

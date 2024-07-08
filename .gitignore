@@ -117,10 +117,10 @@ scripts/nodes.txt
 **/cifar-10-batches-bin/
 
 # Generated documentation files
-/doc/_build
-/doc/source/_static/thumbs
-/doc/source/tune/generated_guides/
-/doc/source/**/doc/
+/docs/_build
+/docs/source/_static/thumbs
+/docs/source/tune/generated_guides/
+/dosc/source/**/doc/
 
 # User-specific stuff:
 .idea/**/workspace.xml
@@ -204,7 +204,6 @@ project-id
 .mypy_cache/
 
 # release test related
-.anyscale.yaml
 test_state.json
 
 # workflow storage
@@ -245,3 +244,16 @@ result_outputs/
 
 __pycache__
 **/__pycache__/
+
+env/
+benchmark_results/
+benchmark_test_dir/
+profile_dir*
+temp*
+experiment*
+wandb/
+prefill_outputs/
+prefill_experiments/
+cap_experiments/
+experiments/
+experiments_*

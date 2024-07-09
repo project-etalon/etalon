@@ -9,7 +9,7 @@ Clone Repository
 
 .. code-block:: shell
 
-    git clone https://github.com/gatech-sysml/metron.git
+    git clone https://github.com/project-metron/metron.git
 
 Create Conda Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~

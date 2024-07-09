@@ -242,7 +242,7 @@ class CapacitySearch:
             qps=qps,
             tbt_deadline=self.args.tbt_slo,
             wandb_project="Metron",
-            wandb_group="gatech-sysml",
+            wandb_group="project-metron",
             wandb_run_name=f"qps_{qps}_model_{self.job_config.model_config.name}_ttftslack_{self.args.ttft_slack_slo}_tbt_{self.args.tbt_slo}_tpot_{self.args.tpot_slo}_ttft_{self.args.ttft_slo}_trace_{self.job_config.request_generator_config.trace_file_name}",
         )
 

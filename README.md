@@ -20,7 +20,7 @@ Tool to benchmark LLM Inference Systems
 
 ### Clone repository
 ```bash
-git clone https://github.com/gatech-sysml/metron.git
+git clone https://github.com/project-metron/metron.git
 ```
 
 ### Create conda environment

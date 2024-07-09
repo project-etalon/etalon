@@ -21,8 +21,7 @@ And, then run the following command:
     --timeout 600 \
     --num-concurrent-requests 1 \
     --fixed-request-generator-decode-tokens 16 \
-    --output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b" \
-    --should-use-given-dir true
+    --output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b"
 
 Adjusting Prompt Lengths
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -44,6 +43,5 @@ To profile a custom range of prompt lengths, use the flag ``--prefill-lengths`` 
     --num-concurrent-requests 1 \
     --fixed-request-generator-decode-tokens 16 \
     --output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b" \
-    --should-use-given-dir true \
     --prefill-lengths 256 512 1024 2048 4096 8192 16384 32768 65536
 

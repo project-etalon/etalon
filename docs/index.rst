@@ -40,5 +40,5 @@ If you use our work, please consider citing our paper:
 
 Acknowledgement
 ---------------
-`metron <https://github.com/gatech-sysml/metron>`_ code was originally created as a fork from `LLMPerf <https://github.com/ray-project/llmperf>`_ project.
+`metron <https://github.com/project-metron/metron>`_ code was originally created as a fork from `LLMPerf <https://github.com/ray-project/llmperf>`_ project.
 

@@ -50,10 +50,20 @@ def get_args():
     )
     parser.add_argument("--wandb-project", type=str, default=None)
     parser.add_argument("--wandb-group", type=str, default=None)
-    parser.add_argument("--should-write-metrics-to-wandb", type=bool, action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument(
+        "--should-write-metrics-to-wandb",
+        type=bool,
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
     parser.add_argument("--wandb-sweep-name", type=str, default=None)
     parser.add_argument("--wandb-sweep-id", type=str, default=None)
-    parser.add_argument("--enable-wandb-sweep", type=bool, action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument(
+        "--enable-wandb-sweep",
+        type=bool,
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
 
     args = parser.parse_args()
 

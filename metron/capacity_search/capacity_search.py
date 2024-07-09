@@ -241,9 +241,10 @@ class CapacitySearch:
             ),
             qps=qps,
             tbt_deadline=self.args.tbt_slo,
-            wandb_project="Metron",
-            wandb_group="gatech-sysml",
-            wandb_run_name=f"qps_{qps}_model_{self.job_config.model_config.name}_ttftslack_{self.args.ttft_slack_slo}_tbt_{self.args.tbt_slo}_tpot_{self.args.tpot_slo}_ttft_{self.args.ttft_slo}_trace_{self.job_config.request_generator_config.trace_file_name}",
+            wandb_project=self.args.wandb_project,
+            wandb_group=self.args.wandb_group,
+            wandb_run_name=f"qps_{qps}_model_{self.job_config.model_config.name}_engine_{self.job_config.server_config.openai_server_engine}",
+            should_write_metrics=self.args.should_write_metrics_to_wandb,
         )
 
         run_dir = benchmark_config.get_run_dir()
@@ -347,7 +348,7 @@ class CapacitySearch:
             f"Best Run ID: {best_run_id}",
         )
 
-        if self.args.wandb_project is not None:
+        if self.args.wandb_project is not None and self.args.enable_wandb_sweep:
             best_run = wandb.Api().run(f"{self.args.wandb_project}/{best_run_id}")
             best_run.tags.append("BEST_CONFIG")
             best_run.update()

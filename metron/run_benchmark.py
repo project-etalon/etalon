@@ -435,6 +435,7 @@ def parse_args():
         "--should-use-given-dir",  # added to prevent the creation of a new directories for the capacity search
         type=bool,
         default=True,
+        action=argparse.BooleanOptionalAction,
         help=(
             "Whether to add directly use --output-dir directory or create new directories for the results. (default: %(default)s)"
         ),

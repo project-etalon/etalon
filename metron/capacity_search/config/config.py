@@ -373,8 +373,11 @@ class BenchmarkConfig:
         args = []
         for key, value in config_dict.items():
             if value is not None:
-                if isinstance(value, bool) and value:
-                    args.append(f"--{key}")
+                if isinstance(value, bool):
+                    if value:
+                        args.append(f"--{key}")
+                    else:
+                        args.append(f"--no-{key}")
                 else:
                     args.append(f"--{key} {value}")
         return " ".join(args)

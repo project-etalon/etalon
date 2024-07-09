@@ -372,10 +372,11 @@ class BenchmarkConfig:
         config_dict = self.to_config_dict()
         args = []
         for key, value in config_dict.items():
-            if isinstance(value, bool) and value:
-                args.append(f"--{key}")
-            elif value is not None:
-                args.append(f"--{key} {value}")
+            if value is not None:
+                if isinstance(value, bool) and value:
+                    args.append(f"--{key}")
+                else:
+                    args.append(f"--{key} {value}")
         return " ".join(args)
 
     def get_run_id(self):

@@ -84,10 +84,11 @@ async def run_manager(
     generated_texts: List[str] = None,
     pbar: tqdm = None
 ):
+    start_time = time.monotonic()
     launched_requests = 0
     await req_launcher.start_tasks()
     with service_metrics:
-        while launched_requests < service_metrics.max_requests:
+        while launched_requests < service_metrics.max_requests and (time.monotonic()-start_time < service_metrics.timeout):
             request_start_time = time.monotonic()
             service_metrics.register_launched_request()
 

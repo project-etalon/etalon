@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import ray
 from tqdm import tqdm
+import asyncio
 
 from metron.core.hf_utils import get_tokenizer
 from metron.core.llm_clients import SUPPORTED_APIS, construct_clients
@@ -21,6 +22,9 @@ from metron.request_generator.interval_generator.generator_registry import (
 )
 from metron.request_generator.length_generator.base_generator import (
     BaseRequestLengthGenerator,
+)
+from metron.request_generator.interval_generator.base_generator import (
+    BaseRequestIntervalGenerator,
 )
 from metron.request_generator.length_generator.generator_registry import (
     RequestLengthGeneratorRegistry,
@@ -65,6 +69,65 @@ def get_request_params(
     return request_config
 
 
+async def run_manager(
+    model: str,
+    llm_api: str,
+    tokenizer: Any,
+    additional_sampling_params: Optional[Dict[str, Any]] = None,
+    requests_interval_generator: Optional[BaseRequestIntervalGenerator] = None,
+    requests_length_generator: Optional[BaseRequestLengthGenerator] = None,
+    corpus_lines: List[str] = None,
+    address_append_value: Optional[str] = None,
+    request_every_minute: bool = False,
+    service_metrics: ServiceMetrics = None,
+    req_launcher: RequestsLauncher = None,
+    generated_texts: List[str] = None,
+    pbar: tqdm = None
+):
+    launched_requests = 0
+    await req_launcher.start_tasks()
+    with service_metrics:
+        while launched_requests < service_metrics.max_requests:
+            request_start_time = time.monotonic()
+            service_metrics.register_launched_request()
+
+            request_config = get_request_params(
+                model=model,
+                llm_api=llm_api,
+                tokenizer=tokenizer,
+                additional_sampling_params=additional_sampling_params,
+                request_length_generator=requests_length_generator,
+                corpus_lines=corpus_lines.copy(),  # pass a copy of the corpus lines to avoid modifying the original
+                address_append_value=address_append_value,
+            )
+            await req_launcher.launch_requests(request_config)
+            launched_requests += 1
+            
+            pbar.update(launched_requests - pbar.n)
+
+            # sleep for the next request interval
+            next_request_interval = (
+                60
+                if request_every_minute
+                else requests_interval_generator.get_next_inter_request_time()
+            )
+            while True:
+                if time.monotonic() - request_start_time >= next_request_interval:
+                    break
+
+    pbar.close()
+
+    # check one last time that there are no remaining results to collect.
+    outs = req_launcher.get_results()
+    for out in outs:
+        request_metrics, generated_text = out
+        if generated_text:
+            service_metrics.add_request_metrics(request_metrics)
+            generated_texts.append(generated_text)
+
+    await req_launcher.complete()
+
+
 def run_benchmark(
     model: str,
     output_dir: str,
@@ -107,7 +170,8 @@ def run_benchmark(
         The individual metrics for each request.
     """
     clients = construct_clients(
-        model_name=model, llm_api=llm_api, num_clients=num_concurrent_requests
+        model_name=model, llm_api=llm_api, num_clients=num_concurrent_requests,
+        use_ray=False
     )
     req_launcher = RequestsLauncher(clients)
     service_metrics = ServiceMetrics(
@@ -146,53 +210,23 @@ def run_benchmark(
     with open(corpus_path, "r") as f:
         corpus_lines = f.readlines()
 
-    with service_metrics:
-        while not service_metrics.should_stop():
-            request_start_time = time.monotonic()
-            service_metrics.register_launched_request()
-
-            request_config = get_request_params(
-                model=model,
-                llm_api=llm_api,
-                tokenizer=tokenizer,
-                additional_sampling_params=additional_sampling_params,
-                request_length_generator=requests_length_generator,
-                corpus_lines=corpus_lines.copy(),  # pass a copy of the corpus lines to avoid modifying the original
-                address_append_value=address_append_value,
-            )
-            req_launcher.launch_requests(request_config)
-            # Retrieving results less frequently allows for more concurrent requests
-            # to be launched. This will overall reduce the amount of time it takes
-            # for the test to run.
-            if not (service_metrics.num_requests % num_concurrent_requests):
-                outs = req_launcher.get_next_ready()
-                for out in outs:
-                    request_metrics, generated_text = out
-                    if generated_text:
-                        service_metrics.add_request_metrics(request_metrics)
-                        generated_texts.append(generated_text)
-
-            pbar.update(service_metrics.num_completed_requests - pbar.n)
-
-            # sleep for the next request interval
-            next_request_interval = (
-                60
-                if request_every_minute
-                else requests_interval_generator.get_next_inter_request_time()
-            )
-            while True:
-                if time.monotonic() - request_start_time >= next_request_interval:
-                    break
-
-    pbar.close()
-
-    # check one last time that there are no remaining results to collect.
-    outs = req_launcher.get_next_ready()
-    for out in outs:
-        request_metrics, generated_text = out
-        if generated_text:
-            service_metrics.add_request_metrics(request_metrics)
-            generated_texts.append(generated_text)
+    asyncio.run(
+        run_manager(
+            model=model,
+            llm_api=llm_api,
+            tokenizer=tokenizer,
+            additional_sampling_params=additional_sampling_params,
+            requests_interval_generator=requests_interval_generator,
+            requests_length_generator=requests_length_generator,
+            corpus_lines=corpus_lines,
+            address_append_value=address_append_value,
+            request_every_minute=request_every_minute,
+            service_metrics=service_metrics,
+            req_launcher=req_launcher,
+            generated_texts=generated_texts,
+            pbar=pbar,
+        )
+    )
 
     logger.info(
         f"Results for token benchmark for {model} queried with the {llm_api} api. {service_metrics}"

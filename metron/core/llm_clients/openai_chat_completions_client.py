@@ -3,7 +3,7 @@ import os
 import time
 from typing import List, Tuple
 
-import ray
+import asyncio
 import requests
 
 from metron.core.llm_clients.base_llm_client import BaseLLMClient
@@ -17,7 +17,6 @@ logger = init_logger(__name__)
 MAX_RESPONSES_ALLOWED_TO_STORE = 5
 
 
-@ray.remote
 class OpenAIChatCompletionsClient(BaseLLMClient):
     """Client for OpenAI Chat Completions API."""
 
@@ -40,7 +39,13 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         previous_token_count = self.total_tokens(previous_responses)
         return current_tokens_received, previous_token_count
 
-    def send_llm_request(
+    async def send_llm_request(
+        self, request_config: RequestConfig
+    ) -> Tuple[RequestMetrics, str]:
+        request_metrics, generated_text = await self.send_llm_request_(request_config)
+        return request_metrics, generated_text
+
+    async def send_llm_request_(
         self, request_config: RequestConfig
     ) -> Tuple[RequestMetrics, str]:
         prompt = request_config.prompt

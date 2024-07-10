@@ -172,9 +172,9 @@ def run_benchmark(
     """
     clients = construct_clients(
         model_name=model, llm_api=llm_api, num_clients=num_concurrent_requests,
-        use_ray=False
+        use_ray=False, use_single_client=True
     )
-    req_launcher = RequestsLauncher(clients)
+    req_launcher = RequestsLauncher(clients, max_concurrent_requests=num_concurrent_requests)
     service_metrics = ServiceMetrics(
         max_requests=max_num_completed_requests,
         timeout=timeout,

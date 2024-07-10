@@ -42,13 +42,12 @@ class RequestsLauncher:
             request_config: The configuration for the request.
 
         """
-        if self.llm_client_pool.has_free():
-            self.llm_client_pool.submit(
-                lambda actor, _request_config: actor.launch_requests.remote(
-                    _request_config
-                ),
-                request_config,
-            )
+        self.llm_client_pool.submit(
+            lambda actor, _request_config: actor.launch_requests.remote(
+                _request_config
+            ),
+            request_config,
+        )
 
     async def free_pool(self, block: bool = False) -> None:
         """Frees the pool of actors for the next batch of requests.
@@ -71,7 +70,8 @@ class RequestsLauncher:
 
     async def complete(self):
         """Complete all tasks"""
-        await self.free_pool()
+        while self.llm_client_pool.has_next():
+            self.llm_client_pool.get_next_unordered()
         for actor in self.actors:
             await actor.complete.remote()
 

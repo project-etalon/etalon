@@ -10,7 +10,7 @@ Tool to benchmark LLM Inference Systems
 </h3>
 
 <p align="center">
-| <a href="https://project-metron.readthedocs.io/en/latest/"><b>Documentation</b></a> | <a href=""><b>Paper</b></a> |
+| <a href="https://project-metron.readthedocs.io/en/latest/"><b>Documentation</b></a> | <a href="https://arxiv.org/abs/2407.07000"><b>Paper</b></a> |
 
 </p>
 
@@ -170,11 +170,14 @@ class CustomLLMClient(BaseLLMClient):
 ## Citation
 If you use our work, please consider citing our paper:
 ```cite
-@article{agrawal2024metron,
-  title={Metron: Holistic Performance Evaluation Framework for LLM Inference Systems},
-  author={Agrawal, Amey and Agarwal, Anmol and Kedia, Nitin and Mohan, Jayashree and Kundu, Souvik and Kwatra, Nipun and Ramjee, Ramachandran and Tumanov, Alexey},
-  journal={},
-  year={2024}
+@misc{agrawal2024metronholisticperformanceevaluation,
+      title={Metron: Holistic Performance Evaluation Framework for LLM Inference Systems}, 
+      author={Amey Agrawal and Anmol Agarwal and Nitin Kedia and Jayashree Mohan and Souvik Kundu and Nipun Kwatra and Ramachandran Ramjee and Alexey Tumanov},
+      year={2024},
+      eprint={2407.07000},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2407.07000}, 
 }
 ```
 

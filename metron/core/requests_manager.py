@@ -17,28 +17,17 @@ class AsyncRequestsManager:
         self.results_queue = asyncio.Queue()
         self.llm_client = llm_client
         self.client_id = client_id
-        self.count_requests = 0
-        self.none_picks = 0
 
     async def start_tasks(self):
-        self.client_tasks = [asyncio.create_task(self.send_requests(i)) for i in range(self.max_concurrent_requests)]
+        self.client_tasks = [asyncio.create_task(self.send_requests()) for _ in range(self.max_concurrent_requests)]
 
-    async def send_requests(self, i) -> None:
-        count_requests = 0
+    async def send_requests(self) -> None:
         while True:
-            print(f"{self.client_id, i} Waiting for request", flush=True)
             request_config = await self.busy_pool.get()
-            print(f"{self.client_id, i} Handling request", flush=True)
             if request_config is None:
                 self.busy_pool.task_done()
-                self.none_picks += 1
-                print(f"{self.client_id, i} Exiting after processing {count_requests}", flush=True)
                 break
             request_metrics, generated_text = await self.llm_client.send_llm_request(request_config)
-            await asyncio.sleep(5)
-            print(f"{self.client_id, i} Request completed: {generated_text[-10:]}", flush=True)
-            count_requests += 1
-            self.count_requests += 1
             await self.results_queue.put((request_metrics, generated_text))
             self.busy_pool.task_done()
 
@@ -64,13 +53,15 @@ class AsyncRequestsManager:
             result = await self.results_queue.get()
             results.append(result)
             self.results_queue.task_done()
-        print(f"({self.client_id}) Requests completed: ", self.count_requests)
-        print(f"({self.client_id}) None picks: ", self.none_picks)
         return results
 
     async def complete(self):
+        """Waits for all tasks to complete.
+
+        Returns:
+            None
+        """
         for _ in range(self.max_concurrent_requests):
             await self.busy_pool.put(None)
-
         for task in self.client_tasks:
             await task

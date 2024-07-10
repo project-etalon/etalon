@@ -124,8 +124,6 @@ async def run_manager(
 
     pbar.close()
 
-    print(f"Launched all {service_metrics.num_requests} requests, waiting for completion", flush=True)
-
     # wait for all requests to complete
     await req_launcher.complete()
 
@@ -136,8 +134,6 @@ async def run_manager(
         if generated_text:
             service_metrics.add_request_metrics(request_metrics)
             generated_texts.append(generated_text)
-
-    print(f"All requests completed {service_metrics.num_completed_requests}", flush=True)
 
 
 def run_benchmark(

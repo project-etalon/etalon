@@ -77,8 +77,9 @@ class PrefillProfiler:
                 model=self.args.model,
                 output_dir=run_dir,
                 additional_sampling_params=self.args.additional_sampling_params,
-                num_concurrent_requests=self.args.num_concurrent_requests,  # should be 1 when profiling open-source. For proprietary, it can be more
-                max_num_completed_requests=self.args.max_num_completed_requests,  # 10 by default
+                num_ray_clients=self.args.num_ray_clients,
+                num_concurrent_requests_per_client=self.args.num_concurrent_requests_per_client,
+                max_num_completed_requests=self.args.max_num_completed_requests,
                 timeout=self.args.timeout,
                 llm_api=self.args.llm_api,
                 request_generator_config=request_generator_config,

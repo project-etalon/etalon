@@ -179,7 +179,8 @@ class RequestGeneratorConfig:
 
 @dataclass
 class RequestConfig:
-    num_concurrent_requests: Optional[int] = None
+    num_ray_clients: Optional[int] = None
+    num_concurrent_requests_per_client: Optional[int] = None
     timeout: Optional[int] = None
     max_num_completed_requests: Optional[int] = None
     additional_sampling_params: Optional[Dict[str, Any]] = None
@@ -188,7 +189,8 @@ class RequestConfig:
 
     def to_config_dict(self):
         return {
-            "num-concurrent-requests": self.num_concurrent_requests,
+            "num-ray-clients": self.num_ray_clients,
+            "num-concurrent-requests-per-client": self.num_concurrent_requests_per_client,
             "timeout": self.timeout,
             "max-num-completed-requests": self.max_num_completed_requests,
             "additional-sampling-params": self.additional_sampling_params,
@@ -208,10 +210,10 @@ class RequestConfig:
         return " ".join(args)
 
     def get_key(self):
-        return f"{self.num_concurrent_requests}_{self.timeout}_{self.max_num_completed_requests}_{self.llm_api}"
+        return f"{self.num_ray_clients}_{self.timeout}_{self.max_num_completed_requests}_{self.llm_api}"
 
     def to_human_readable_name(self):
-        return f"Num concurrent requests: {self.num_concurrent_requests}, Timeout: {self.timeout}, Max num completed requests: {self.max_num_completed_requests}, LLM API: {self.llm_api}"
+        return f"Num ray clients: {self.num_ray_clients}, Num concurrent requests per client: {self.num_concurrent_requests_per_client}, Timeout: {self.timeout}, Max num completed requests: {self.max_num_completed_requests}, LLM API: {self.llm_api}"
 
 
 @dataclass

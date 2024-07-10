@@ -19,7 +19,8 @@ And, then run the following command:
     --model "meta-llama/Meta-Llama-3-8B-Instruct" \
     --max-num-completed-requests 1 \
     --timeout 600 \
-    --num-concurrent-requests 1 \
+    --num-ray-clients 1 \
+    --num-concurrent-requests-per-client 1 \
     --fixed-request-generator-decode-tokens 16 \
     --output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b"
 
@@ -40,7 +41,8 @@ To profile a custom range of prompt lengths, use the flag ``--prefill-lengths`` 
     --model "meta-llama/Meta-Llama-3-8B-Instruct" \
     --max-num-completed-requests 1 \
     --timeout 600 \
-    --num-concurrent-requests 1 \
+    --num-ray-clients 1 \
+    --num-concurrent-requests-per-client 1 \
     --fixed-request-generator-decode-tokens 16 \
     --output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b" \
     --prefill-lengths 256 512 1024 2048 4096 8192 16384 32768 65536

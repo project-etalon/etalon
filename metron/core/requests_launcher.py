@@ -1,7 +1,5 @@
-import math
 from typing import Any, List
 
-import asyncio
 from ray.util import ActorPool
 
 from metron.core.llm_clients import construct_clients
@@ -11,23 +9,18 @@ from metron.core.requests_manager import AsyncRequestsManager
 class RequestsLauncher:
     """Launch requests from LLMClients to their respective LLM APIs."""
 
-    def __init__(self, model: str, llm_api: str, num_concurrent_requests: int):
+    def __init__(self, model: str, llm_api: str, num_ray_clients: int, num_concurrent_requests_per_client: int):
         # ray clients = sqrt(num_concurrent_requests, so that each client can handle sqrt(num_concurrent_requests)
-        num_ray_actors = int(math.floor(math.sqrt(num_concurrent_requests)))
         llm_clients = construct_clients(
             model_name=model,
             llm_api=llm_api,
-            num_clients=num_ray_actors,
+            num_clients=num_ray_clients,
             use_ray=False
         )
         self.actors = []
         for client_id, client in enumerate(llm_clients):
-            num_concurrent_requests_per_actor = num_concurrent_requests // num_ray_actors
-            if client_id == 0:
-                # when num_concurrent_requests is not perfect square
-                num_concurrent_requests_per_actor += num_concurrent_requests % num_ray_actors
             self.actors.append(
-                AsyncRequestsManager.remote(client_id, client, max_concurrent_requests=num_concurrent_requests_per_actor)
+                AsyncRequestsManager.remote(client_id, client, max_concurrent_requests=num_concurrent_requests_per_client)
             )
         self.llm_client_pool = ActorPool(self.actors)
         

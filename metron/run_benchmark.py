@@ -80,14 +80,16 @@ async def run_manager(
     address_append_value: Optional[str] = None,
     request_every_minute: bool = False,
     service_metrics: ServiceMetrics = None,
-    num_concurrent_requests: int = 10,
+    num_ray_clients: int = 2,
+    num_concurrent_requests_per_client: int = 5,
     generated_texts: List[str] = None,
     pbar: tqdm = None
 ):
     req_launcher = RequestsLauncher(
         model=model,
         llm_api=llm_api,
-        num_concurrent_requests=num_concurrent_requests,
+        num_ray_clients=num_ray_clients,
+        num_concurrent_requests_per_client=num_concurrent_requests_per_client,
     )
     await req_launcher.start()
     with service_metrics:
@@ -140,7 +142,8 @@ def run_benchmark(
     model: str,
     output_dir: str,
     additional_sampling_params: Optional[Dict[str, Any]] = None,
-    num_concurrent_requests: int = 1,
+    num_ray_clients: int = 2,
+    num_concurrent_requests_per_client: int = 5,
     max_num_completed_requests: int = 500,
     timeout=90,
     llm_api: str = "openai",
@@ -161,7 +164,8 @@ def run_benchmark(
         model: The name of the model to query.
         additional_sampling_params: Additional sampling parameters to send with the request.
             For more information see the LLM APIs documentation for the completions
-        num_concurrent_requests: The number of concurrent requests to make. Increase
+        num_ray_clients: The number of ray actors to use for the benchmark. Each actor handles one LLM client.
+        num_concurrent_requests_per_client: The number of concurrent requests per ray actor to make. Increase
             this to increase the amount of load and vice versa.
         timeout The amount of time to run the test for before reporting results.
         llm_api: The name of the llm api to use. Either "openai" or "litellm".
@@ -225,7 +229,8 @@ def run_benchmark(
             address_append_value=address_append_value,
             request_every_minute=request_every_minute,
             service_metrics=service_metrics,
-            num_concurrent_requests=num_concurrent_requests,
+            num_ray_clients=num_ray_clients,
+            num_concurrent_requests_per_client=num_concurrent_requests_per_client,
             generated_texts=generated_texts,
             pbar=pbar,
         )
@@ -251,10 +256,16 @@ def parse_args():
         "--model", type=str, required=True, help="The model to use for this load test."
     )
     args.add_argument(
-        "--num-concurrent-requests",
+        "--num-ray-clients",
         type=int,
-        default=10,
-        help=("The number of concurrent requests to send (default: %(default)s)"),
+        default=2,
+        help=("The number of ray actors to use for benchmark. (default: %(default)s)"),
+    )
+    args.add_argument(
+        "--num-concurrent-requests-per-client",
+        type=int,
+        default=5,
+        help=("The number of concurrent requests to send per ray actor (default: %(default)s)"),
     )
     args.add_argument(
         "--timeout",
@@ -572,7 +583,8 @@ if __name__ == "__main__":
         model=args.model,
         timeout=args.timeout,
         max_num_completed_requests=args.max_num_completed_requests,
-        num_concurrent_requests=args.num_concurrent_requests,
+        num_ray_clients=args.num_ray_clients,
+        num_concurrent_requests_per_client=args.num_concurrent_requests_per_client,
         additional_sampling_params=args.additional_sampling_params,
         request_generator_config=request_generator_config,
         ttft_deadline=args.ttft_deadline,

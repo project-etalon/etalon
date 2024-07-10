@@ -14,11 +14,10 @@ from metron.metrics.request_metrics import RequestMetrics
 logger = init_logger(__name__)
 
 
-@ray.remote
 class VertexAIClient(BaseLLMClient):
     """Client for VertexAI API."""
 
-    def send_llm_request(
+    async def send_llm_request_(
         self, request_config: RequestConfig
     ) -> Tuple[RequestMetrics, str]:
         project_id = os.environ.get("GCLOUD_PROJECT_ID")

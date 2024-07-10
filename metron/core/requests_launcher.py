@@ -1,38 +1,39 @@
+import math
 from typing import Any, List
 
-from metron.core.llm_clients.base_llm_client import BaseLLMClient
-from metron.core.request_config import RequestConfig
-
 import asyncio
+from ray.util import ActorPool
 
+from metron.core.llm_clients import construct_clients
+from metron.core.request_config import RequestConfig
+from metron.core.requests_manager import AsyncRequestsManager
 
 class RequestsLauncher:
     """Launch requests from LLMClients to their respective LLM APIs."""
 
-    def __init__(self, llm_client: BaseLLMClient, max_concurrent_requests: int):
-        self.max_concurrent_requests = max_concurrent_requests
-        self.llm_client_free_pool = asyncio.Queue(maxsize=max_concurrent_requests)
-        self.llm_client_busy_pool = asyncio.Queue(maxsize=max_concurrent_requests)
-        self.results_queue = asyncio.Queue()
-        self.llm_client = llm_client
-        for client_id in range(max_concurrent_requests):
-            self.llm_client_free_pool.put_nowait(client_id)
-
-    async def start_tasks(self):
-        self.client_tasks = [asyncio.create_task(self.send_requests()) for _ in range(self.max_concurrent_requests)]
-
-    async def send_requests(self) -> None:
-        while True:
-            task = await self.llm_client_busy_pool.get()
-            if task is None:
-                self.llm_client_busy_pool.task_done()
-                break
-            client_id: int = task[0]
-            request_config: RequestConfig = task[1]
-            request_metrics, generated_text = await self.llm_client.send_llm_request(request_config)
-            await self.results_queue.put((request_metrics, generated_text))
-            await self.llm_client_free_pool.put(client_id)
-            self.llm_client_busy_pool.task_done()
+    def __init__(self, model: str, llm_api: str, num_concurrent_requests: int):
+        # ray clients = sqrt(num_concurrent_requests, so that each client can handle sqrt(num_concurrent_requests)
+        num_ray_actors = int(math.floor(math.sqrt(num_concurrent_requests)))
+        llm_clients = construct_clients(
+            model_name=model,
+            llm_api=llm_api,
+            num_clients=num_ray_actors,
+            use_ray=False
+        )
+        self.actors = []
+        for client_id, client in enumerate(llm_clients):
+            num_concurrent_requests_per_actor = num_concurrent_requests // num_ray_actors
+            if client_id == 0:
+                # when num_concurrent_requests is not perfect square
+                num_concurrent_requests_per_actor += num_concurrent_requests % num_ray_actors
+            self.actors.append(
+                AsyncRequestsManager.remote(client_id, client, max_concurrent_requests=num_concurrent_requests_per_actor)
+            )
+        self.llm_client_pool = ActorPool(self.actors)
+        
+    async def start(self):
+        for actor in self.actors:
+            await actor.start_tasks.remote()
 
     async def launch_requests(self, request_config: RequestConfig) -> None:
         """Launch requests to the LLM API.
@@ -41,10 +42,40 @@ class RequestsLauncher:
             request_config: The configuration for the request.
 
         """
-        free_client_id = await self.llm_client_free_pool.get()
-        await self.llm_client_busy_pool.put((free_client_id, request_config))
+        if self.llm_client_pool.has_free():
+            self.llm_client_pool.submit(
+                lambda actor, _request_config: actor.launch_requests.remote(
+                    _request_config
+                ),
+                request_config,
+            )
 
-    def get_results(self) -> List[Any]:
+    async def free_pool(self, block: bool = False) -> None:
+        """Frees the pool of actors for the next batch of requests.
+
+        Args:
+            block: Whether to block until a result is ready.
+
+        Returns:
+            None
+
+        """
+        if not block:
+            while self.llm_client_pool.has_next():
+                self.llm_client_pool.get_next_unordered()
+        else:
+            while not self.llm_client_pool.has_next():
+                pass
+            while self.llm_client_pool.has_next():
+                self.llm_client_pool.get_next_unordered()
+
+    async def complete(self):
+        """Complete all tasks"""
+        await self.free_pool()
+        for actor in self.actors:
+            await actor.complete.remote()
+
+    async def get_results(self) -> List[Any]:
         """Return results that are ready from completed requests.
 
         Returns:
@@ -52,12 +83,6 @@ class RequestsLauncher:
 
         """
         results = []
-        while not self.results_queue.empty():
-            results.append(self.results_queue.get_nowait())
+        for actor in self.actors:
+            results.extend(await actor.get_results.remote())
         return results
-
-    async def complete(self):
-        for _ in range(self.max_concurrent_requests):
-            await self.llm_client_busy_pool.put(None)
-        for task in self.client_tasks:
-            task.cancel()

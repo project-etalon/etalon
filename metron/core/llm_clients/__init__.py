@@ -10,7 +10,7 @@ SUPPORTED_APIS = ["openai", "anthropic", "litellm"]
 
 
 def construct_clients(
-    model_name: str, llm_api: str, num_clients: int, use_ray: bool = True, use_single_client: bool = False
+    model_name: str, llm_api: str, num_clients: int, use_ray: bool = True
 ) -> List[BaseLLMClient]:
     """Construct LLMClients that will be used to make requests to the LLM API.
 
@@ -35,9 +35,9 @@ def construct_clients(
             f"llm_api must be one of the supported LLM APIs: {SUPPORTED_APIS}"
         )
 
-    if use_single_client:
-        clients = impl.remote(model_name) if use_ray else impl(model_name)
+    if use_ray:
+        clients = [impl.remote(model_name) for _ in range(num_clients)]
     else:
-        clients = [impl.remote(model_name) if use_ray else impl(model_name) for _ in range(num_clients)]
+        clients = [impl(model_name) for _ in range(num_clients)]
 
     return clients

@@ -63,7 +63,7 @@ class ServiceMetrics:
     def should_stop(self):
         return not (
             time.monotonic() - self.start_time < self.timeout
-            and self.num_completed_requests < self.max_requests
+            and self.num_requests < self.max_requests
         )
 
     def register_launched_request(self):

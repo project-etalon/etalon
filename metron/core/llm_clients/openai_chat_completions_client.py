@@ -39,12 +39,6 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         previous_token_count = self.total_tokens(previous_responses)
         return current_tokens_received, previous_token_count
 
-    async def send_llm_request(
-        self, request_config: RequestConfig
-    ) -> Tuple[RequestMetrics, str]:
-        request_metrics, generated_text = await self.send_llm_request_(request_config)
-        return request_metrics, generated_text
-
     async def send_llm_request_(
         self, request_config: RequestConfig
     ) -> Tuple[RequestMetrics, str]:

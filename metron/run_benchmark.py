@@ -12,7 +12,7 @@ from tqdm import tqdm
 import asyncio
 
 from metron.core.hf_utils import get_tokenizer
-from metron.core.llm_clients import SUPPORTED_APIS, construct_clients
+from metron.core.llm_clients import SUPPORTED_APIS
 from metron.core.request_config import RequestConfig
 from metron.core.requests_launcher import RequestsLauncher
 from metron.logger import init_logger
@@ -80,15 +80,18 @@ async def run_manager(
     address_append_value: Optional[str] = None,
     request_every_minute: bool = False,
     service_metrics: ServiceMetrics = None,
-    req_launcher: RequestsLauncher = None,
+    num_concurrent_requests: int = 10,
     generated_texts: List[str] = None,
     pbar: tqdm = None
 ):
-    start_time = time.monotonic()
-    launched_requests = 0
-    await req_launcher.start_tasks()
+    req_launcher = RequestsLauncher(
+        model=model,
+        llm_api=llm_api,
+        num_concurrent_requests=num_concurrent_requests,
+    )
+    await req_launcher.start()
     with service_metrics:
-        while launched_requests < service_metrics.max_requests and (time.monotonic()-start_time < service_metrics.timeout):
+        while not service_metrics.should_stop():
             request_start_time = time.monotonic()
             service_metrics.register_launched_request()
 
@@ -101,10 +104,13 @@ async def run_manager(
                 corpus_lines=corpus_lines.copy(),  # pass a copy of the corpus lines to avoid modifying the original
                 address_append_value=address_append_value,
             )
+
             await req_launcher.launch_requests(request_config)
-            launched_requests += 1
-            
-            pbar.update(launched_requests - pbar.n)
+
+            if not (service_metrics.num_requests % 5):
+                await req_launcher.free_pool()
+
+            pbar.update(service_metrics.num_requests - pbar.n)
 
             # sleep for the next request interval
             next_request_interval = (
@@ -118,15 +124,20 @@ async def run_manager(
 
     pbar.close()
 
-    # check one last time that there are no remaining results to collect.
-    outs = req_launcher.get_results()
-    for out in outs:
+    print(f"Launched all {service_metrics.num_requests} requests, waiting for completion", flush=True)
+
+    # wait for all requests to complete
+    await req_launcher.complete()
+
+    # collect results from all actors
+    results = await req_launcher.get_results()
+    for out in results:
         request_metrics, generated_text = out
         if generated_text:
             service_metrics.add_request_metrics(request_metrics)
             generated_texts.append(generated_text)
 
-    await req_launcher.complete()
+    print(f"All requests completed {service_metrics.num_completed_requests}", flush=True)
 
 
 def run_benchmark(
@@ -170,11 +181,6 @@ def run_benchmark(
         (e.g. throughput, latencies, etc.)
         The individual metrics for each request.
     """
-    clients = construct_clients(
-        model_name=model, llm_api=llm_api, num_clients=num_concurrent_requests,
-        use_ray=False, use_single_client=True
-    )
-    req_launcher = RequestsLauncher(clients, max_concurrent_requests=num_concurrent_requests)
     service_metrics = ServiceMetrics(
         max_requests=max_num_completed_requests,
         timeout=timeout,
@@ -223,7 +229,7 @@ def run_benchmark(
             address_append_value=address_append_value,
             request_every_minute=request_every_minute,
             service_metrics=service_metrics,
-            req_launcher=req_launcher,
+            num_concurrent_requests=num_concurrent_requests,
             generated_texts=generated_texts,
             pbar=pbar,
         )

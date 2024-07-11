@@ -89,7 +89,7 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
                         error_content = []
                         async for error_line in response.aiter_lines():
                             error_content.append(error_line)
-                        error_msg = ''.join(error_content)
+                        error_msg = "".join(error_content)
                         logger.error(f"Request Error: {error_msg}")
                         response.raise_for_status()
 
@@ -136,9 +136,7 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
                             most_recent_received_token_time = time.monotonic()
                             generated_text += delta["content"]
         except Exception as e:
-            logger.error(
-                f"Warning Or Error: ({error_response_code}) {e}"
-            )
+            logger.error(f"Warning Or Error: ({error_response_code}) {e}")
 
         metrics = RequestMetrics(
             inter_token_times=inter_token_times,

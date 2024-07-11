@@ -5,7 +5,6 @@ from metron.core.request_config import RequestConfig
 
 import asyncio
 import ray
-from ray.actor import exit_actor
 
 
 @ray.remote
@@ -29,15 +28,10 @@ class AsyncRequestsManager:
 
     async def process_requests(self, i) -> None:
         while True:
-            print(f"{self.client_id, i} waiting for request", flush=True)
             request_config = await self.requests_queue.get()
-            print(f"{self.client_id, i} got request {request_config.id if request_config is not None else None}", flush=True)
             if request_config is None:
-                print(f"{self.client_id, i} Exiting", flush=True)
                 break
-            print(f"{self.client_id, i} handling request {request_config.id}", flush=True)
             await self.handle_request(request_config, i)
-            print(f"{self.client_id, i} completed request {request_config.id}", flush=True)
             self.requests_queue.task_done()
 
     async def handle_request(self, request_config: RequestConfig, i: int) -> None:
@@ -47,11 +41,7 @@ class AsyncRequestsManager:
             None
         """
         if request_config:
-            print(f"{self.client_id, i} sending request {request_config.id}", flush=True)
-            # await asyncio.sleep(10)
             result = await self.llm_client.send_llm_request(request_config)
-            await asyncio.sleep(60)
-            print(f"{self.client_id, i} got result for request {request_config.id}", flush=True)
             self.results.append(result)
 
     async def launch_requests(self, request_config: RequestConfig) -> None:
@@ -61,9 +51,7 @@ class AsyncRequestsManager:
             request_config: The configuration for the request.
 
         """
-        print(f"{self.client_id} Queuing request {request_config.id}", flush=True)
         await self.requests_queue.put(request_config)
-        print(f"{self.client_id} Queued request {request_config.id}", flush=True)
 
     async def get_results(self) -> List[Any]:
         """Return results that are ready from completed requests.
@@ -82,7 +70,5 @@ class AsyncRequestsManager:
         """
         for _ in range(self.max_concurrent_requests):
             await self.requests_queue.put(None)
-        print(f"{self.client_id} Waiting for tasks to complete")
         for task in self.client_tasks:
             await task
-        print(f"{self.client_id} Tasks completed")

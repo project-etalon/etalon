@@ -91,8 +91,6 @@ async def run_manager(
         num_ray_clients=num_ray_clients,
         num_concurrent_requests_per_client=num_concurrent_requests_per_client,
     )
-    print("Number of ray clients: ", num_ray_clients, flush=True)
-    print("Number of concurrent requests per client: ", num_concurrent_requests_per_client, flush=True)
     await req_launcher.start()
     with service_metrics:
         while not service_metrics.should_stop():
@@ -109,7 +107,6 @@ async def run_manager(
                     corpus_lines=corpus_lines.copy(),  # pass a copy of the corpus lines to avoid modifying the original
                     address_append_value=address_append_value,
                 )
-                request_config.id = service_metrics.num_requests
                 await req_launcher.launch_requests(request_config)
 
             pbar.update(service_metrics.num_requests - pbar.n)

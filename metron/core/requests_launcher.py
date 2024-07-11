@@ -42,14 +42,12 @@ class RequestsLauncher:
             request_config: The configuration for the request.
 
         """
-        print(f"Launching request {request_config.id}")
         self.llm_client_pool.submit(
             lambda actor, _request_config: actor.launch_requests.remote(
                 _request_config
             ),
             request_config,
         )
-        print(f"Launched request {request_config.id}")
 
     async def is_free(self) -> bool:
         """Check if the pool of actors is free.
@@ -74,12 +72,9 @@ class RequestsLauncher:
             while self.llm_client_pool.has_next():
                 self.llm_client_pool.get_next_unordered()
         else:
-            print("Blocking on free_pool")
             while len(self.llm_client_pool._pending_submits) > 0:
-                print("Waiting for pending submits to complete")
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.1)
                 pass
-            print("Unblocking on free_pool")
             while self.llm_client_pool.has_next():
                 self.llm_client_pool.get_next_unordered()
 

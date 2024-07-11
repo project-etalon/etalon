@@ -1,17 +1,19 @@
+import asyncio
 from typing import Any, List
+
+import ray
 
 from metron.core.llm_clients.base_llm_client import BaseLLMClient
 from metron.core.request_config import RequestConfig
-
-import asyncio
-import ray
 
 
 @ray.remote
 class AsyncRequestsManager:
     """Manages requests for single LLM API client."""
 
-    def __init__(self, client_id: int, llm_client: BaseLLMClient, max_concurrent_requests: int):
+    def __init__(
+        self, client_id: int, llm_client: BaseLLMClient, max_concurrent_requests: int
+    ):
         self.max_concurrent_requests = max_concurrent_requests
         self.requests_queue = asyncio.Queue(maxsize=max_concurrent_requests)
         self.results = []
@@ -24,7 +26,10 @@ class AsyncRequestsManager:
         Returns:
             None
         """
-        self.client_tasks = [asyncio.create_task(self.process_requests(i)) for i in range(self.max_concurrent_requests)]
+        self.client_tasks = [
+            asyncio.create_task(self.process_requests(i))
+            for i in range(self.max_concurrent_requests)
+        ]
 
     async def process_requests(self, i) -> None:
         while True:

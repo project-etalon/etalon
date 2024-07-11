@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import datetime
 import json
 import os
@@ -9,7 +10,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import ray
 from tqdm import tqdm
-import asyncio
 
 from metron.core.hf_utils import get_tokenizer
 from metron.core.llm_clients import SUPPORTED_APIS
@@ -17,14 +17,14 @@ from metron.core.request_config import RequestConfig
 from metron.core.requests_launcher import RequestsLauncher
 from metron.logger import init_logger
 from metron.metrics.service_metrics import ServiceMetrics
+from metron.request_generator.interval_generator.base_generator import (
+    BaseRequestIntervalGenerator,
+)
 from metron.request_generator.interval_generator.generator_registry import (
     RequestIntervalGeneratorRegistry,
 )
 from metron.request_generator.length_generator.base_generator import (
     BaseRequestLengthGenerator,
-)
-from metron.request_generator.interval_generator.base_generator import (
-    BaseRequestIntervalGenerator,
 )
 from metron.request_generator.length_generator.generator_registry import (
     RequestLengthGeneratorRegistry,
@@ -83,7 +83,7 @@ async def run_manager(
     num_ray_clients: int = 2,
     num_concurrent_requests_per_client: int = 5,
     generated_texts: List[str] = None,
-    pbar: tqdm = None
+    pbar: tqdm = None,
 ):
     req_launcher = RequestsLauncher(
         model=model,
@@ -265,7 +265,9 @@ def parse_args():
         "--num-concurrent-requests-per-client",
         type=int,
         default=5,
-        help=("The number of concurrent requests to send per ray actor (default: %(default)s)"),
+        help=(
+            "The number of concurrent requests to send per ray actor (default: %(default)s)"
+        ),
     )
     args.add_argument(
         "--timeout",

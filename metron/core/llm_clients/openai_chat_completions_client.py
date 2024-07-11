@@ -4,6 +4,7 @@ import time
 from typing import List, Tuple
 
 import httpx
+
 from metron.core.llm_clients.base_llm_client import BaseLLMClient
 from metron.core.request_config import RequestConfig
 from metron.logger import init_logger
@@ -81,11 +82,7 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         try:
             async with httpx.AsyncClient() as client:
                 async with client.stream(
-                    "POST", 
-                    address, 
-                    json=body, 
-                    timeout=180, 
-                    headers=headers
+                    "POST", address, json=body, timeout=180, headers=headers
                 ) as response:
                     if response.status_code != 200:
                         error_msg = response.text
@@ -134,7 +131,9 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
                             most_recent_received_token_time = time.monotonic()
                             generated_text += delta["content"]
         except Exception as e:
-            logger.error(f"{request_config.id,} Warning Or Error: ({error_response_code}) {e}")
+            logger.error(
+                f"{request_config.id,} Warning Or Error: ({error_response_code}) {e}"
+            )
 
         metrics = RequestMetrics(
             inter_token_times=inter_token_times,

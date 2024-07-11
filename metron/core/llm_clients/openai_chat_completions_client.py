@@ -3,9 +3,7 @@ import os
 import time
 from typing import List, Tuple
 
-import asyncio
-import requests
-
+import httpx
 from metron.core.llm_clients.base_llm_client import BaseLLMClient
 from metron.core.request_config import RequestConfig
 from metron.logger import init_logger
@@ -81,58 +79,62 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         most_recent_received_token_time = time.monotonic()
 
         try:
-            with requests.post(
-                address,
-                json=body,
-                stream=True,
-                timeout=180,
-                headers=headers,
-            ) as response:
-                if response.status_code != 200:
-                    error_msg = response.text
-                    error_response_code = response.status_code
-                    logger.error(f"Request Error: {response.content}")
-                    response.raise_for_status()
+            async with httpx.AsyncClient() as client:
+                async with client.stream(
+                    "POST", 
+                    address, 
+                    json=body, 
+                    timeout=180, 
+                    headers=headers
+                ) as response:
+                    if response.status_code != 200:
+                        error_msg = response.text
+                        error_response_code = response.status_code
+                        logger.error(f"Request Error: {response.content}")
+                        response.raise_for_status()
 
-                for chunk in response.iter_lines(chunk_size=None):
-                    chunk = chunk.strip()
+                    async for chunk in response.aiter_lines():
+                        chunk = chunk.strip()
 
-                    if not chunk:
-                        continue
-                    stem = "data: "
-                    chunk = chunk[len(stem) :]
-                    if chunk == b"[DONE]":
-                        continue
-                    data = json.loads(chunk)
+                        if not chunk:
+                            continue
+                        stem = "data: "
+                        chunk = chunk[len(stem) :]
+                        if chunk == b"[DONE]":
+                            continue
+                        elif chunk == "[DONE]":
+                            continue
 
-                    if "error" in data:
-                        error_msg = data["error"]["message"]
-                        error_response_code = data["error"]["code"]
-                        raise RuntimeError(data["error"]["message"])
+                        data = json.loads(chunk)
 
-                    delta = data["choices"][0]["delta"]
-                    if delta.get("content", None):
-                        (
-                            current_tokens_received,
-                            previous_token_count,
-                        ) = self.get_current_tokens_received(
-                            previous_responses=previous_responses,
-                            current_response=delta["content"],
-                            previous_token_count=previous_token_count,
-                        )
+                        if "error" in data:
+                            error_msg = data["error"]["message"]
+                            error_response_code = data["error"]["code"]
+                            raise RuntimeError(data["error"]["message"])
 
-                        tokens_received += current_tokens_received
-                        inter_token_times.append(
-                            time.monotonic() - most_recent_received_token_time
-                        )
-                        if current_tokens_received > 1:
-                            inter_token_times.extend(
-                                [0] * (current_tokens_received - 1)
+                        delta = data["choices"][0]["delta"]
+                        if delta.get("content", None):
+                            (
+                                current_tokens_received,
+                                previous_token_count,
+                            ) = self.get_current_tokens_received(
+                                previous_responses=previous_responses,
+                                current_response=delta["content"],
+                                previous_token_count=previous_token_count,
                             )
-                        most_recent_received_token_time = time.monotonic()
-                        generated_text += delta["content"]
+
+                            tokens_received += current_tokens_received
+                            inter_token_times.append(
+                                time.monotonic() - most_recent_received_token_time
+                            )
+                            if current_tokens_received > 1:
+                                inter_token_times.extend(
+                                    [0] * (current_tokens_received - 1)
+                                )
+                            most_recent_received_token_time = time.monotonic()
+                            generated_text += delta["content"]
         except Exception as e:
-            logger.error(f"Warning Or Error: ({error_response_code}) {e}")
+            logger.error(f"{request_config.id,} Warning Or Error: ({error_response_code}) {e}")
 
         metrics = RequestMetrics(
             inter_token_times=inter_token_times,

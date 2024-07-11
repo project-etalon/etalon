@@ -21,3 +21,4 @@ class RequestConfig(BaseModel):
     llm_api: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
     address_append_value: Optional[str] = None
+    id: Optional[int] = None

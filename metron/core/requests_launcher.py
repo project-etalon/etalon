@@ -1,6 +1,7 @@
 from typing import Any, List
 
 from ray.util import ActorPool
+import asyncio
 
 from metron.core.llm_clients import construct_clients
 from metron.core.request_config import RequestConfig
@@ -41,12 +42,23 @@ class RequestsLauncher:
             request_config: The configuration for the request.
 
         """
+        print(f"Launching request {request_config.id}")
         self.llm_client_pool.submit(
             lambda actor, _request_config: actor.launch_requests.remote(
                 _request_config
             ),
             request_config,
         )
+        print(f"Launched request {request_config.id}")
+
+    async def is_free(self) -> bool:
+        """Check if the pool of actors is free.
+
+        Returns:
+            True if the pool of actors is free, False otherwise.
+
+        """
+        return self.llm_client_pool.has_free()
 
     async def free_pool(self, block: bool = False) -> None:
         """Frees the pool of actors for the next batch of requests.
@@ -62,17 +74,20 @@ class RequestsLauncher:
             while self.llm_client_pool.has_next():
                 self.llm_client_pool.get_next_unordered()
         else:
-            while not self.llm_client_pool.has_next():
+            print("Blocking on free_pool")
+            while len(self.llm_client_pool._pending_submits) > 0:
+                print("Waiting for pending submits to complete")
+                await asyncio.sleep(1)
                 pass
+            print("Unblocking on free_pool")
             while self.llm_client_pool.has_next():
                 self.llm_client_pool.get_next_unordered()
 
-    async def complete(self):
+    async def complete_tasks(self):
         """Complete all tasks"""
-        while self.llm_client_pool.has_next():
-            self.llm_client_pool.get_next_unordered()
+        await self.free_pool(block=True)
         for actor in self.actors:
-            await actor.complete.remote()
+            await actor.complete_tasks.remote()
 
     async def get_results(self) -> List[Any]:
         """Return results that are ready from completed requests.

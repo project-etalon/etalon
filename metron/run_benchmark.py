@@ -91,25 +91,31 @@ async def run_manager(
         num_ray_clients=num_ray_clients,
         num_concurrent_requests_per_client=num_concurrent_requests_per_client,
     )
+    print("Number of ray clients: ", num_ray_clients, flush=True)
+    print("Number of concurrent requests per client: ", num_concurrent_requests_per_client, flush=True)
     await req_launcher.start()
     with service_metrics:
         while not service_metrics.should_stop():
             request_start_time = time.monotonic()
-            service_metrics.register_launched_request()
 
-            request_config = get_request_params(
-                model=model,
-                llm_api=llm_api,
-                tokenizer=tokenizer,
-                additional_sampling_params=additional_sampling_params,
-                request_length_generator=requests_length_generator,
-                corpus_lines=corpus_lines.copy(),  # pass a copy of the corpus lines to avoid modifying the original
-                address_append_value=address_append_value,
-            )
-
-            await req_launcher.launch_requests(request_config)
+            if await req_launcher.is_free():
+                service_metrics.register_launched_request()
+                request_config = get_request_params(
+                    model=model,
+                    llm_api=llm_api,
+                    tokenizer=tokenizer,
+                    additional_sampling_params=additional_sampling_params,
+                    request_length_generator=requests_length_generator,
+                    corpus_lines=corpus_lines.copy(),  # pass a copy of the corpus lines to avoid modifying the original
+                    address_append_value=address_append_value,
+                )
+                request_config.id = service_metrics.num_requests
+                await req_launcher.launch_requests(request_config)
 
             pbar.update(service_metrics.num_requests - pbar.n)
+
+            if not (service_metrics.num_requests % num_ray_clients):
+                await req_launcher.free_pool()
 
             # sleep for the next request interval
             next_request_interval = (
@@ -124,7 +130,7 @@ async def run_manager(
     pbar.close()
 
     # wait for all requests to complete
-    await req_launcher.complete()
+    await req_launcher.complete_tasks()
 
     # collect results from all actors
     results = await req_launcher.get_results()

@@ -25,6 +25,12 @@ class RequestsLauncher:
         self.llm_client_pool = ActorPool(self.actors)
         
     async def start(self):
+        """Starts the tasks on each actor to handle requests.
+
+        Returns:
+            None
+
+        """
         for actor in self.actors:
             await actor.start_tasks.remote()
 

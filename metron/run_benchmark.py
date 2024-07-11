@@ -109,9 +109,6 @@ async def run_manager(
 
             await req_launcher.launch_requests(request_config)
 
-            if not (service_metrics.num_requests % 5):
-                await req_launcher.free_pool()
-
             pbar.update(service_metrics.num_requests - pbar.n)
 
             # sleep for the next request interval

@@ -85,9 +85,12 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
                     "POST", address, json=body, timeout=180, headers=headers
                 ) as response:
                     if response.status_code != 200:
-                        error_msg = response.text
                         error_response_code = response.status_code
-                        logger.error(f"Request Error: {response.content}")
+                        error_content = []
+                        async for error_line in response.aiter_lines():
+                            error_content.append(error_line)
+                        error_msg = ''.join(error_content)
+                        logger.error(f"Request Error: {error_msg}")
                         response.raise_for_status()
 
                     async for chunk in response.aiter_lines():
@@ -97,12 +100,14 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
                             continue
                         stem = "data: "
                         chunk = chunk[len(stem) :]
-                        if chunk == b"[DONE]":
-                            continue
-                        elif chunk == "[DONE]":
+                        if chunk in [b"[DONE]", "[DONE]"]:
                             continue
 
-                        data = json.loads(chunk)
+                        try:
+                            data = json.loads(chunk)
+                        except json.JSONDecodeError:
+                            logger.error(f"JSON decode error with chunk: {chunk}")
+                            continue  # Skip malformed JSON
 
                         if "error" in data:
                             error_msg = data["error"]["message"]
@@ -132,7 +137,7 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
                             generated_text += delta["content"]
         except Exception as e:
             logger.error(
-                f"{request_config.id,} Warning Or Error: ({error_response_code}) {e}"
+                f"Warning Or Error: ({error_response_code}) {e}"
             )
 
         metrics = RequestMetrics(

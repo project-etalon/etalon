@@ -18,7 +18,7 @@ logger = init_logger(__name__)
 class SageMakerClient(BaseLLMClient):
     """Client for OpenAI Chat Completions API."""
 
-    def send_llm_request_(
+    async def send_llm_request(
         self, request_config: RequestConfig
     ) -> Tuple[RequestMetrics, str]:
         if not os.environ.get("AWS_ACCESS_KEY_ID"):

@@ -14,7 +14,7 @@ logger = init_logger(__name__)
 class LiteLLMClient(BaseLLMClient):
     """Client for LiteLLM Completions API."""
 
-    async def send_llm_request_(
+    async def send_llm_request(
         self, request_config: RequestConfig
     ) -> Tuple[RequestMetrics, str]:
         # litellm package isn't serializable, so we import it within the function

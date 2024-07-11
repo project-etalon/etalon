@@ -17,7 +17,7 @@ logger = init_logger(__name__)
 class VertexAIClient(BaseLLMClient):
     """Client for VertexAI API."""
 
-    async def send_llm_request_(
+    async def send_llm_request(
         self, request_config: RequestConfig
     ) -> Tuple[RequestMetrics, str]:
         project_id = os.environ.get("GCLOUD_PROJECT_ID")

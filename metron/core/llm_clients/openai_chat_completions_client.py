@@ -39,7 +39,7 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         previous_token_count = self.total_tokens(previous_responses)
         return current_tokens_received, previous_token_count
 
-    async def send_llm_request_(
+    async def send_llm_request(
         self, request_config: RequestConfig
     ) -> Tuple[RequestMetrics, str]:
         prompt = request_config.prompt

@@ -82,7 +82,7 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         try:
             async with httpx.AsyncClient() as client:
                 async with client.stream(
-                    "POST", address, json=body, timeout=180, headers=headers
+                    "POST", address, json=body, timeout=None, headers=headers
                 ) as response:
                     if response.status_code != 200:
                         error_response_code = response.status_code

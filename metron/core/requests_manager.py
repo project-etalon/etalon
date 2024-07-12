@@ -31,15 +31,15 @@ class AsyncRequestsManager:
             for i in range(self.max_concurrent_requests)
         ]
 
-    async def process_requests(self, i) -> None:
+    async def process_requests(self, task_id: int) -> None:
         while True:
             request_config = await self.requests_queue.get()
             if request_config is None:
                 break
-            await self.handle_request(request_config, i)
+            await self.handle_request(request_config, task_id)
             self.requests_queue.task_done()
 
-    async def handle_request(self, request_config: RequestConfig, i: int) -> None:
+    async def handle_request(self, request_config: RequestConfig, task_id: int) -> None:
         """Handle requests to the LLM API.
 
         Returns:
@@ -49,7 +49,7 @@ class AsyncRequestsManager:
             result = await self.llm_client.send_llm_request(request_config)
             self.results.append(result)
 
-    async def launch_requests(self, request_config: RequestConfig) -> None:
+    async def launch_requests(self, request_config: RequestConfig) -> List[Any]:
         """Launch requests to the LLM API.
 
         Args:
@@ -65,7 +65,9 @@ class AsyncRequestsManager:
             A list of results that are ready.
 
         """
-        return self.results
+        curr_results = self.results
+        self.results = []
+        return curr_results
 
     async def complete_tasks(self):
         """Waits for all tasks to complete.

@@ -42,6 +42,10 @@ class ServiceMetrics:
     @property
     def num_completed_requests(self) -> int:
         return self.metric_store.num_completed_requests
+    
+    @property
+    def num_errored_requests(self) -> int:
+        return self.metric_store.num_errored_requests
 
     @property
     def duration(self):
@@ -63,7 +67,7 @@ class ServiceMetrics:
     def should_stop(self):
         return not (
             time.monotonic() - self.start_time < self.timeout
-            and self.num_requests < self.max_requests
+            and self.num_completed_requests < self.max_requests
         )
 
     def register_launched_request(self):

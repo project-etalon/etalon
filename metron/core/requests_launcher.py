@@ -18,7 +18,6 @@ class RequestsLauncher:
         num_ray_clients: int,
         num_concurrent_requests_per_client: int,
     ):
-        # ray clients = sqrt(num_concurrent_requests, so that each client can handle sqrt(num_concurrent_requests)
         llm_clients = construct_clients(
             model_name=model,
             llm_api=llm_api,
@@ -36,7 +35,7 @@ class RequestsLauncher:
             )
         self.llm_client_pool = ActorPool(self.actors)
 
-    async def start(self):
+    async def start(self) -> None:
         """Starts the tasks on each actor to handle requests.
 
         Returns:
@@ -89,17 +88,17 @@ class RequestsLauncher:
             while self.llm_client_pool.has_next():
                 self.llm_client_pool.get_next_unordered()
 
-    async def complete_tasks(self):
+    async def complete_tasks(self) -> None:
         """Complete all tasks"""
         await self.free_pool(block=True)
         for actor in self.actors:
             await actor.complete_tasks.remote()
-
-    async def get_results(self) -> List[Any]:
-        """Return results that are ready from completed requests.
+    
+    async def collect_results(self) -> List[Any]:
+        """Collect results from the actors.
 
         Returns:
-            A list of results that are ready.
+            A list of results from the actors.
 
         """
         results = []

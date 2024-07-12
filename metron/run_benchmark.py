@@ -43,6 +43,7 @@ def get_request_params(
     request_length_generator: Optional[BaseRequestLengthGenerator] = None,
     corpus_lines: List[str] = None,
     address_append_value: Optional[str] = None,
+    request_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     (
         num_prompt_tokens,
@@ -64,9 +65,41 @@ def get_request_params(
         sampling_params=default_sampling_params,
         llm_api=llm_api,
         address_append_value=address_append_value,
+        id=request_id,
     )
 
     return request_config
+
+
+def should_send_new_request(service_metrics: ServiceMetrics, num_errored_requests_handled: int) -> bool:
+    """Check if a request should be sent based on the current state of the service.
+
+    If the number of requests is less than the maximum number of requests, a request should always be sent.
+    If the number of requests is greater than the maximum number of requests and not all errored requests are handled, a request should be sent.
+
+    Args:
+        service_metrics: The metrics for the service.
+        num_errored_requests_handled: The number of errored requests handled.
+
+    Returns:
+        True if a request should be sent, False otherwise.
+    """
+    return (
+        (service_metrics.num_requests < service_metrics.max_requests)
+        or (
+            service_metrics.num_requests >= service_metrics.max_requests
+            and num_errored_requests_handled < service_metrics.num_errored_requests
+        )
+    )
+
+
+async def collect_results(req_launcher: RequestsLauncher, service_metrics: ServiceMetrics, generated_texts: List[str]) -> None:
+    results = await req_launcher.collect_results()
+    for out in results:
+        request_metrics, generated_text = out
+        if generated_text:
+            service_metrics.add_request_metrics(request_metrics)
+            generated_texts.append(generated_text)
 
 
 async def run_manager(
@@ -91,51 +124,55 @@ async def run_manager(
         num_ray_clients=num_ray_clients,
         num_concurrent_requests_per_client=num_concurrent_requests_per_client,
     )
+    num_errored_requests_handled = 0
     await req_launcher.start()
     with service_metrics:
         while not service_metrics.should_stop():
-            request_start_time = time.monotonic()
+            if should_send_new_request(service_metrics, num_errored_requests_handled):
+                request_start_time = time.monotonic()
+                if await req_launcher.is_free():
+                    if service_metrics.num_requests >= service_metrics.max_requests:
+                        num_errored_requests_handled += 1
+                    service_metrics.register_launched_request()
+                    request_config = get_request_params(
+                        model=model,
+                        llm_api=llm_api,
+                        tokenizer=tokenizer,
+                        additional_sampling_params=additional_sampling_params,
+                        request_length_generator=requests_length_generator,
+                        corpus_lines=corpus_lines.copy(),  # pass a copy of the corpus lines to avoid modifying the original
+                        address_append_value=address_append_value,
+                        request_id=service_metrics.num_requests,
+                    )
+                    await req_launcher.launch_requests(request_config)
 
-            if await req_launcher.is_free():
-                service_metrics.register_launched_request()
-                request_config = get_request_params(
-                    model=model,
-                    llm_api=llm_api,
-                    tokenizer=tokenizer,
-                    additional_sampling_params=additional_sampling_params,
-                    request_length_generator=requests_length_generator,
-                    corpus_lines=corpus_lines.copy(),  # pass a copy of the corpus lines to avoid modifying the original
-                    address_append_value=address_append_value,
+                # poll less frequently when the number of requests is less than the max requests
+                if not (service_metrics.num_requests % num_ray_clients):
+                    await req_launcher.free_pool()
+                    await collect_results(req_launcher, service_metrics, generated_texts)
+
+                # sleep for the next request interval
+                next_request_interval = (
+                    60
+                    if request_every_minute
+                    else requests_interval_generator.get_next_inter_request_time()
                 )
-                await req_launcher.launch_requests(request_config)
-
-            pbar.update(service_metrics.num_requests - pbar.n)
-
-            if not (service_metrics.num_requests % num_ray_clients):
+                while True:
+                    if time.monotonic() - request_start_time >= next_request_interval:
+                        break
+            else:
+                # just keep freeing pool and polling for results when no more requests can be sent.
+                # If errored requests are encountered, they will be handled
                 await req_launcher.free_pool()
+                await collect_results(req_launcher, service_metrics, generated_texts)
 
-            # sleep for the next request interval
-            next_request_interval = (
-                60
-                if request_every_minute
-                else requests_interval_generator.get_next_inter_request_time()
-            )
-            while True:
-                if time.monotonic() - request_start_time >= next_request_interval:
-                    break
+            pbar.update(service_metrics.num_completed_requests - pbar.n)
 
     pbar.close()
 
-    # wait for all requests to complete
+    # wait for all requests to complete and collect all results
     await req_launcher.complete_tasks()
-
-    # collect results from all actors
-    results = await req_launcher.get_results()
-    for out in results:
-        request_metrics, generated_text = out
-        if generated_text:
-            service_metrics.add_request_metrics(request_metrics)
-            generated_texts.append(generated_text)
+    await collect_results(req_launcher, service_metrics, generated_texts)
 
 
 def run_benchmark(

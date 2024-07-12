@@ -173,11 +173,12 @@ async def run_manager(
 
             pbar.update(service_metrics.num_completed_requests - pbar.n)
 
-    pbar.close()
-
     # wait for all requests to complete and collect all results
     await req_launcher.complete_tasks()
     await collect_results(req_launcher, service_metrics, generated_texts)
+
+    pbar.update(service_metrics.num_completed_requests - pbar.n)
+    pbar.close()
 
 
 def run_benchmark(

@@ -93,7 +93,7 @@ class RequestsLauncher:
         await self.free_pool(block=True)
         for actor in self.actors:
             await actor.complete_tasks.remote()
-    
+
     async def collect_results(self) -> List[Any]:
         """Collect results from the actors.
 

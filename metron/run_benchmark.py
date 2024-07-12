@@ -71,7 +71,9 @@ def get_request_params(
     return request_config
 
 
-def should_send_new_request(service_metrics: ServiceMetrics, num_errored_requests_handled: int) -> bool:
+def should_send_new_request(
+    service_metrics: ServiceMetrics, num_errored_requests_handled: int
+) -> bool:
     """Check if a request should be sent based on the current state of the service.
 
     If the number of requests is less than the maximum number of requests, a request should always be sent.
@@ -84,16 +86,17 @@ def should_send_new_request(service_metrics: ServiceMetrics, num_errored_request
     Returns:
         True if a request should be sent, False otherwise.
     """
-    return (
-        (service_metrics.num_requests < service_metrics.max_requests)
-        or (
-            service_metrics.num_requests >= service_metrics.max_requests
-            and num_errored_requests_handled < service_metrics.num_errored_requests
-        )
+    return (service_metrics.num_requests < service_metrics.max_requests) or (
+        service_metrics.num_requests >= service_metrics.max_requests
+        and num_errored_requests_handled < service_metrics.num_errored_requests
     )
 
 
-async def collect_results(req_launcher: RequestsLauncher, service_metrics: ServiceMetrics, generated_texts: List[str]) -> None:
+async def collect_results(
+    req_launcher: RequestsLauncher,
+    service_metrics: ServiceMetrics,
+    generated_texts: List[str],
+) -> None:
     results = await req_launcher.collect_results()
     for out in results:
         request_metrics, generated_text = out
@@ -149,7 +152,9 @@ async def run_manager(
                 # poll less frequently when the number of requests is less than the max requests
                 if not (service_metrics.num_requests % num_ray_clients):
                     await req_launcher.free_pool()
-                    await collect_results(req_launcher, service_metrics, generated_texts)
+                    await collect_results(
+                        req_launcher, service_metrics, generated_texts
+                    )
 
                 # sleep for the next request interval
                 next_request_interval = (

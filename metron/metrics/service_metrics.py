@@ -42,7 +42,7 @@ class ServiceMetrics:
     @property
     def num_completed_requests(self) -> int:
         return self.metric_store.num_completed_requests
-    
+
     @property
     def num_errored_requests(self) -> int:
         return self.metric_store.num_errored_requests

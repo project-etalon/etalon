@@ -19,6 +19,10 @@ MAX_RESPONSES_ALLOWED_TO_STORE = 5
 class OpenAIChatCompletionsClient(BaseLLMClient):
     """Client for OpenAI Chat Completions API."""
 
+    def __init__(self, model_name: str) -> None:
+        super().__init__(model_name)
+        self.client = httpx.AsyncClient()
+
     def total_tokens(self, response_list: List[str]) -> int:
         merged_content = "".join(response_list)
         return self.get_token_length(merged_content)
@@ -37,6 +41,10 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
             previous_responses.pop(0)
         previous_token_count = self.total_tokens(previous_responses)
         return current_tokens_received, previous_token_count
+    
+    async def close_client(self):
+        # Close the client
+        await self.client.aclose()
 
     async def send_llm_request(
         self, request_config: RequestConfig
@@ -80,61 +88,60 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         most_recent_received_token_time = time.monotonic()
 
         try:
-            async with httpx.AsyncClient() as client:
-                async with client.stream(
-                    "POST", address, json=body, timeout=None, headers=headers
-                ) as response:
-                    if response.status_code != 200:
-                        error_response_code = response.status_code
-                        error_content = []
-                        async for error_line in response.aiter_lines():
-                            error_content.append(error_line)
-                        error_msg = "".join(error_content)
-                        logger.error(f"Request Error: {error_msg}")
-                        response.raise_for_status()
+            async with self.client.stream(
+                "POST", address, json=body, timeout=None, headers=headers
+            ) as response:
+                if response.status_code != 200:
+                    error_response_code = response.status_code
+                    error_content = []
+                    async for error_line in response.aiter_lines():
+                        error_content.append(error_line)
+                    error_msg = "".join(error_content)
+                    logger.error(f"Request Error: {error_msg}")
+                    response.raise_for_status()
 
-                    async for chunk in response.aiter_lines():
-                        chunk = chunk.strip()
+                async for chunk in response.aiter_lines():
+                    chunk = chunk.strip()
 
-                        if not chunk:
-                            continue
-                        stem = "data: "
-                        chunk = chunk[len(stem) :]
-                        if chunk in [b"[DONE]", "[DONE]"]:
-                            continue
+                    if not chunk:
+                        continue
+                    stem = "data: "
+                    chunk = chunk[len(stem) :]
+                    if chunk in [b"[DONE]", "[DONE]"]:
+                        continue
 
-                        try:
-                            data = json.loads(chunk)
-                        except json.JSONDecodeError:
-                            logger.error(f"JSON decode error with chunk: {chunk}")
-                            continue  # Skip malformed JSON
+                    try:
+                        data = json.loads(chunk)
+                    except json.JSONDecodeError:
+                        logger.error(f"JSON decode error with chunk: {chunk}")
+                        continue  # Skip malformed JSON
 
-                        if "error" in data:
-                            error_msg = data["error"]["message"]
-                            error_response_code = data["error"]["code"]
-                            raise RuntimeError(data["error"]["message"])
+                    if "error" in data:
+                        error_msg = data["error"]["message"]
+                        error_response_code = data["error"]["code"]
+                        raise RuntimeError(data["error"]["message"])
 
-                        delta = data["choices"][0]["delta"]
-                        if delta.get("content", None):
-                            (
-                                current_tokens_received,
-                                previous_token_count,
-                            ) = self.get_current_tokens_received(
-                                previous_responses=previous_responses,
-                                current_response=delta["content"],
-                                previous_token_count=previous_token_count,
+                    delta = data["choices"][0]["delta"]
+                    if delta.get("content", None):
+                        (
+                            current_tokens_received,
+                            previous_token_count,
+                        ) = self.get_current_tokens_received(
+                            previous_responses=previous_responses,
+                            current_response=delta["content"],
+                            previous_token_count=previous_token_count,
+                        )
+
+                        tokens_received += current_tokens_received
+                        inter_token_times.append(
+                            time.monotonic() - most_recent_received_token_time
+                        )
+                        if current_tokens_received > 1:
+                            inter_token_times.extend(
+                                [0] * (current_tokens_received - 1)
                             )
-
-                            tokens_received += current_tokens_received
-                            inter_token_times.append(
-                                time.monotonic() - most_recent_received_token_time
-                            )
-                            if current_tokens_received > 1:
-                                inter_token_times.extend(
-                                    [0] * (current_tokens_received - 1)
-                                )
-                            most_recent_received_token_time = time.monotonic()
-                            generated_text += delta["content"]
+                        most_recent_received_token_time = time.monotonic()
+                        generated_text += delta["content"]
         except Exception as e:
             logger.error(f"Warning Or Error: ({error_response_code}) {e}")
 

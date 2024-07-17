@@ -3,7 +3,8 @@ from typing import Any, List
 
 import ray
 
-from metron.core.llm_clients.base_llm_client import BaseLLMClient
+from metron.core.llm_clients import construct_clients
+from metron.core.llm_clients.openai_chat_completions_client import OpenAIChatCompletionsClient
 from metron.core.request_config import RequestConfig
 
 
@@ -12,12 +13,18 @@ class AsyncRequestsManager:
     """Manages requests for single LLM API client."""
 
     def __init__(
-        self, client_id: int, llm_client: BaseLLMClient, max_concurrent_requests: int
+        self, client_id: int, model: str, llm_api: str, max_concurrent_requests: int
     ):
         self.max_concurrent_requests = max_concurrent_requests
         self.requests_queue = asyncio.Queue(maxsize=max_concurrent_requests)
         self.results = []
-        self.llm_client = llm_client
+        # just create a single client per manager
+        self.llm_client = construct_clients(
+            model_name=model,
+            llm_api=llm_api,
+            num_clients=1,
+            use_ray=False,
+        )[0]
         self.client_id = client_id
 
     async def start_tasks(self):
@@ -79,3 +86,12 @@ class AsyncRequestsManager:
             await self.requests_queue.put(None)
         for task in self.client_tasks:
             await task
+
+    async def shutdown(self):
+        """Shuts down the client.
+
+        Returns:
+            None
+        """
+        if isinstance(self.llm_client, OpenAIChatCompletionsClient):
+            await self.llm_client.close_client()

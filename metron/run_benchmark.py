@@ -105,7 +105,7 @@ async def collect_results(
             generated_texts.append(generated_text)
 
 
-async def run_manager(
+async def run_main_loop(
     model: str,
     llm_api: str,
     tokenizer: Any,
@@ -176,6 +176,8 @@ async def run_manager(
     # wait for all requests to complete and collect all results
     await req_launcher.complete_tasks()
     await collect_results(req_launcher, service_metrics, generated_texts)
+    # shut down clients and actors
+    await req_launcher.shutdown()
 
     pbar.update(service_metrics.num_completed_requests - pbar.n)
     pbar.close()
@@ -261,7 +263,7 @@ def run_benchmark(
         corpus_lines = f.readlines()
 
     asyncio.run(
-        run_manager(
+        run_main_loop(
             model=model,
             llm_api=llm_api,
             tokenizer=tokenizer,

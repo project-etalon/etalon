@@ -2,8 +2,6 @@ import asyncio
 from typing import Any, List
 
 from ray.util import ActorPool
-
-from metron.core.llm_clients import construct_clients
 from metron.core.request_config import RequestConfig
 from metron.core.requests_manager import AsyncRequestsManager
 
@@ -18,18 +16,13 @@ class RequestsLauncher:
         num_ray_clients: int,
         num_concurrent_requests_per_client: int,
     ):
-        llm_clients = construct_clients(
-            model_name=model,
-            llm_api=llm_api,
-            num_clients=num_ray_clients,
-            use_ray=False,
-        )
         self.actors = []
-        for client_id, client in enumerate(llm_clients):
+        for client_id in range(num_ray_clients):
             self.actors.append(
                 AsyncRequestsManager.remote(
-                    client_id,
-                    client,
+                    client_id=client_id,
+                    model=model,
+                    llm_api=llm_api,
                     max_concurrent_requests=num_concurrent_requests_per_client,
                 )
             )
@@ -105,3 +98,13 @@ class RequestsLauncher:
         for actor in self.actors:
             results.extend(await actor.get_results.remote())
         return results
+
+    async def shutdown(self) -> None:
+        """Shutdown the pool of actors.
+
+        Returns:
+            None
+
+        """
+        for actor in self.actors:
+            await actor.shutdown.remote()

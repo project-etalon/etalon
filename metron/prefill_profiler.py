@@ -31,6 +31,12 @@ PREFILL_REQUEST_LENGTH_GENERATOR_PROVIDER = "fixed"
 PREFILL_POLYNOMIAL_DEGREE = 2
 # RMSE threshold for the prefill time predictor
 PREFILL_RMSE_THRESHOLD = 0.05
+# Number of Ray clients to use for prefill profiling
+PREFILL_NUM_RAY_CLIENTS = 1
+# Number of concurrent requests per client for prefill profiling
+PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT = 1
+# Number of completed requests to wait for before stopping the prefill profiling for a prompt length
+PREFILL_MAX_NUM_COMPLETED_REQUESTS = 1
 
 
 class PrefillProfiler:
@@ -77,9 +83,9 @@ class PrefillProfiler:
                 model=self.args.model,
                 output_dir=run_dir,
                 additional_sampling_params=self.args.additional_sampling_params,
-                num_ray_clients=self.args.num_ray_clients,
-                num_concurrent_requests_per_client=self.args.num_concurrent_requests_per_client,
-                max_num_completed_requests=self.args.max_num_completed_requests,
+                num_ray_clients=PREFILL_NUM_RAY_CLIENTS,
+                num_concurrent_requests_per_client=PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT,
+                max_num_completed_requests=PREFILL_MAX_NUM_COMPLETED_REQUESTS,
                 timeout=self.args.timeout,
                 llm_api=self.args.llm_api,
                 request_generator_config=request_generator_config,

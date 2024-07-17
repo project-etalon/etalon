@@ -41,7 +41,7 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
             previous_responses.pop(0)
         previous_token_count = self.total_tokens(previous_responses)
         return current_tokens_received, previous_token_count
-    
+
     async def close_client(self):
         # Close the client
         await self.client.aclose()

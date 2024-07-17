@@ -4,7 +4,9 @@ from typing import Any, List
 import ray
 
 from metron.core.llm_clients import construct_clients
-from metron.core.llm_clients.openai_chat_completions_client import OpenAIChatCompletionsClient
+from metron.core.llm_clients.openai_chat_completions_client import (
+    OpenAIChatCompletionsClient,
+)
 from metron.core.request_config import RequestConfig
 
 

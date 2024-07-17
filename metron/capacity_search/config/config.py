@@ -354,6 +354,7 @@ class BenchmarkConfig:
     wandb_group: Optional[str] = None
     wandb_project: Optional[str] = None
     wandb_run_name: Optional[str] = None
+    should_write_metrics: Optional[bool] = True
 
     def to_config_dict(self):
         return {
@@ -366,6 +367,7 @@ class BenchmarkConfig:
             "wandb-group": self.wandb_group,
             "wandb-project": self.wandb_project,
             "wandb-run-name": self.wandb_run_name,
+            "should-write-metrics": self.should_write_metrics,
         }
 
     def to_args(self):
@@ -373,7 +375,13 @@ class BenchmarkConfig:
         args = []
         for key, value in config_dict.items():
             if value is not None:
-                args.append(f"--{key} {value}")
+                if isinstance(value, bool):
+                    if value:
+                        args.append(f"--{key}")
+                    else:
+                        args.append(f"--no-{key}")
+                else:
+                    args.append(f"--{key} {value}")
         return " ".join(args)
 
     def get_run_id(self):

@@ -49,12 +49,25 @@ def get_args():
         "--debug", action="store_true", help="Print debug logs and commands"
     )
     parser.add_argument("--wandb-project", type=str, default=None)
+    parser.add_argument("--wandb-group", type=str, default=None)
+    parser.add_argument(
+        "--should-write-metrics-to-wandb",
+        type=bool,
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
     parser.add_argument("--wandb-sweep-name", type=str, default=None)
     parser.add_argument("--wandb-sweep-id", type=str, default=None)
+    parser.add_argument(
+        "--enable-wandb-sweep",
+        type=bool,
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
 
     args = parser.parse_args()
 
-    if args.wandb_project:
+    if args.wandb_project and args.enable_wandb_sweep:
         assert (
             args.wandb_sweep_name or args.wandb_sweep_id
         ), "wandb-sweep-name/id is required with wandb-project"
@@ -80,7 +93,7 @@ if __name__ == "__main__":
     # store the config and args
     json.dump(config, open(f"{args.output_dir}/config.json", "w"))
 
-    if args.wandb_project and not args.wandb_sweep_id:
+    if args.wandb_project and args.enable_wandb_sweep and not args.wandb_sweep_id:
         config["name"] = args.wandb_sweep_name
         config["method"] = "custom"
 

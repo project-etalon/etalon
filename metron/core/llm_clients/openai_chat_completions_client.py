@@ -3,8 +3,7 @@ import os
 import time
 from typing import List, Tuple
 
-import ray
-import requests
+import httpx
 
 from metron.core.llm_clients.base_llm_client import BaseLLMClient
 from metron.core.request_config import RequestConfig
@@ -17,9 +16,12 @@ logger = init_logger(__name__)
 MAX_RESPONSES_ALLOWED_TO_STORE = 5
 
 
-@ray.remote
 class OpenAIChatCompletionsClient(BaseLLMClient):
     """Client for OpenAI Chat Completions API."""
+
+    def __init__(self, model_name: str) -> None:
+        super().__init__(model_name)
+        self.client = httpx.AsyncClient()
 
     def total_tokens(self, response_list: List[str]) -> int:
         merged_content = "".join(response_list)
@@ -40,7 +42,11 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         previous_token_count = self.total_tokens(previous_responses)
         return current_tokens_received, previous_token_count
 
-    def send_llm_request(
+    async def close_client(self):
+        # Close the client
+        await self.client.aclose()
+
+    async def send_llm_request(
         self, request_config: RequestConfig
     ) -> Tuple[RequestMetrics, str]:
         prompt = request_config.prompt
@@ -82,29 +88,33 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         most_recent_received_token_time = time.monotonic()
 
         try:
-            with requests.post(
-                address,
-                json=body,
-                stream=True,
-                timeout=180,
-                headers=headers,
+            async with self.client.stream(
+                "POST", address, json=body, timeout=None, headers=headers
             ) as response:
                 if response.status_code != 200:
-                    error_msg = response.text
                     error_response_code = response.status_code
-                    logger.error(f"Request Error: {response.content}")
+                    error_content = []
+                    async for error_line in response.aiter_lines():
+                        error_content.append(error_line)
+                    error_msg = "".join(error_content)
+                    logger.error(f"Request Error: {error_msg}")
                     response.raise_for_status()
 
-                for chunk in response.iter_lines(chunk_size=None):
+                async for chunk in response.aiter_lines():
                     chunk = chunk.strip()
 
                     if not chunk:
                         continue
                     stem = "data: "
                     chunk = chunk[len(stem) :]
-                    if chunk == b"[DONE]":
+                    if chunk in [b"[DONE]", "[DONE]"]:
                         continue
-                    data = json.loads(chunk)
+
+                    try:
+                        data = json.loads(chunk)
+                    except json.JSONDecodeError:
+                        logger.error(f"JSON decode error with chunk: {chunk}")
+                        continue  # Skip malformed JSON
 
                     if "error" in data:
                         error_msg = data["error"]["message"]

@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import datetime
 import json
 import os
@@ -11,11 +12,14 @@ import ray
 from tqdm import tqdm
 
 from metron.core.hf_utils import get_tokenizer
-from metron.core.llm_clients import SUPPORTED_APIS, construct_clients
+from metron.core.llm_clients import SUPPORTED_APIS
 from metron.core.request_config import RequestConfig
 from metron.core.requests_launcher import RequestsLauncher
 from metron.logger import init_logger
 from metron.metrics.service_metrics import ServiceMetrics
+from metron.request_generator.interval_generator.base_generator import (
+    BaseRequestIntervalGenerator,
+)
 from metron.request_generator.interval_generator.generator_registry import (
     RequestIntervalGeneratorRegistry,
 )
@@ -39,6 +43,7 @@ def get_request_params(
     request_length_generator: Optional[BaseRequestLengthGenerator] = None,
     corpus_lines: List[str] = None,
     address_append_value: Optional[str] = None,
+    request_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     (
         num_prompt_tokens,
@@ -60,16 +65,130 @@ def get_request_params(
         sampling_params=default_sampling_params,
         llm_api=llm_api,
         address_append_value=address_append_value,
+        id=request_id,
     )
 
     return request_config
+
+
+def should_send_new_request(
+    service_metrics: ServiceMetrics, num_errored_requests_handled: int
+) -> bool:
+    """Check if a request should be sent based on the current state of the service.
+
+    If the number of requests is less than the maximum number of requests, a request should always be sent.
+    If the number of requests is greater than the maximum number of requests and not all errored requests are handled, a request should be sent.
+
+    Args:
+        service_metrics: The metrics for the service.
+        num_errored_requests_handled: The number of errored requests handled.
+
+    Returns:
+        True if a request should be sent, False otherwise.
+    """
+    return (service_metrics.num_requests < service_metrics.max_requests) or (
+        service_metrics.num_requests >= service_metrics.max_requests
+        and num_errored_requests_handled < service_metrics.num_errored_requests
+    )
+
+
+async def collect_results(
+    req_launcher: RequestsLauncher,
+    service_metrics: ServiceMetrics,
+    generated_texts: List[str],
+) -> None:
+    results = await req_launcher.collect_results()
+    for out in results:
+        request_metrics, generated_text = out
+        if generated_text:
+            service_metrics.add_request_metrics(request_metrics)
+            generated_texts.append(generated_text)
+
+
+async def run_main_loop(
+    model: str,
+    llm_api: str,
+    tokenizer: Any,
+    additional_sampling_params: Optional[Dict[str, Any]] = None,
+    requests_interval_generator: Optional[BaseRequestIntervalGenerator] = None,
+    requests_length_generator: Optional[BaseRequestLengthGenerator] = None,
+    corpus_lines: List[str] = None,
+    address_append_value: Optional[str] = None,
+    request_every_minute: bool = False,
+    service_metrics: ServiceMetrics = None,
+    num_ray_clients: int = 2,
+    num_concurrent_requests_per_client: int = 5,
+    generated_texts: List[str] = None,
+    pbar: tqdm = None,
+):
+    req_launcher = RequestsLauncher(
+        model=model,
+        llm_api=llm_api,
+        num_ray_clients=num_ray_clients,
+        num_concurrent_requests_per_client=num_concurrent_requests_per_client,
+    )
+    num_errored_requests_handled = 0
+    await req_launcher.start()
+    with service_metrics:
+        while not service_metrics.should_stop():
+            if should_send_new_request(service_metrics, num_errored_requests_handled):
+                request_start_time = time.monotonic()
+                if await req_launcher.is_free():
+                    if service_metrics.num_requests >= service_metrics.max_requests:
+                        num_errored_requests_handled += 1
+                    service_metrics.register_launched_request()
+                    request_config = get_request_params(
+                        model=model,
+                        llm_api=llm_api,
+                        tokenizer=tokenizer,
+                        additional_sampling_params=additional_sampling_params,
+                        request_length_generator=requests_length_generator,
+                        corpus_lines=corpus_lines.copy(),  # pass a copy of the corpus lines to avoid modifying the original
+                        address_append_value=address_append_value,
+                        request_id=service_metrics.num_requests,
+                    )
+                    await req_launcher.launch_requests(request_config)
+
+                # poll less frequently when the number of requests is less than the max requests
+                if not (service_metrics.num_requests % num_ray_clients):
+                    await req_launcher.free_pool()
+                    await collect_results(
+                        req_launcher, service_metrics, generated_texts
+                    )
+
+                # sleep for the next request interval
+                next_request_interval = (
+                    60
+                    if request_every_minute
+                    else requests_interval_generator.get_next_inter_request_time()
+                )
+                while True:
+                    if time.monotonic() - request_start_time >= next_request_interval:
+                        break
+            else:
+                # just keep freeing pool and polling for results when no more requests can be sent.
+                # If errored requests are encountered, they will be handled
+                await req_launcher.free_pool()
+                await collect_results(req_launcher, service_metrics, generated_texts)
+
+            pbar.update(service_metrics.num_completed_requests - pbar.n)
+
+    # wait for all requests to complete and collect all results
+    await req_launcher.complete_tasks()
+    await collect_results(req_launcher, service_metrics, generated_texts)
+    # shut down clients and actors
+    await req_launcher.shutdown()
+
+    pbar.update(service_metrics.num_completed_requests - pbar.n)
+    pbar.close()
 
 
 def run_benchmark(
     model: str,
     output_dir: str,
     additional_sampling_params: Optional[Dict[str, Any]] = None,
-    num_concurrent_requests: int = 1,
+    num_ray_clients: int = 2,
+    num_concurrent_requests_per_client: int = 5,
     max_num_completed_requests: int = 500,
     timeout=90,
     llm_api: str = "openai",
@@ -90,7 +209,8 @@ def run_benchmark(
         model: The name of the model to query.
         additional_sampling_params: Additional sampling parameters to send with the request.
             For more information see the LLM APIs documentation for the completions
-        num_concurrent_requests: The number of concurrent requests to make. Increase
+        num_ray_clients: The number of ray actors to use for the benchmark. Each actor handles one LLM client.
+        num_concurrent_requests_per_client: The number of concurrent requests per ray actor to make. Increase
             this to increase the amount of load and vice versa.
         timeout The amount of time to run the test for before reporting results.
         llm_api: The name of the llm api to use. Either "openai" or "litellm".
@@ -106,10 +226,6 @@ def run_benchmark(
         (e.g. throughput, latencies, etc.)
         The individual metrics for each request.
     """
-    clients = construct_clients(
-        model_name=model, llm_api=llm_api, num_clients=num_concurrent_requests
-    )
-    req_launcher = RequestsLauncher(clients)
     service_metrics = ServiceMetrics(
         max_requests=max_num_completed_requests,
         timeout=timeout,
@@ -146,53 +262,24 @@ def run_benchmark(
     with open(corpus_path, "r") as f:
         corpus_lines = f.readlines()
 
-    with service_metrics:
-        while not service_metrics.should_stop():
-            request_start_time = time.monotonic()
-            service_metrics.register_launched_request()
-
-            request_config = get_request_params(
-                model=model,
-                llm_api=llm_api,
-                tokenizer=tokenizer,
-                additional_sampling_params=additional_sampling_params,
-                request_length_generator=requests_length_generator,
-                corpus_lines=corpus_lines.copy(),  # pass a copy of the corpus lines to avoid modifying the original
-                address_append_value=address_append_value,
-            )
-            req_launcher.launch_requests(request_config)
-            # Retrieving results less frequently allows for more concurrent requests
-            # to be launched. This will overall reduce the amount of time it takes
-            # for the test to run.
-            if not (service_metrics.num_requests % num_concurrent_requests):
-                outs = req_launcher.get_next_ready()
-                for out in outs:
-                    request_metrics, generated_text = out
-                    if generated_text:
-                        service_metrics.add_request_metrics(request_metrics)
-                        generated_texts.append(generated_text)
-
-            pbar.update(service_metrics.num_completed_requests - pbar.n)
-
-            # sleep for the next request interval
-            next_request_interval = (
-                60
-                if request_every_minute
-                else requests_interval_generator.get_next_inter_request_time()
-            )
-            while True:
-                if time.monotonic() - request_start_time >= next_request_interval:
-                    break
-
-    pbar.close()
-
-    # check one last time that there are no remaining results to collect.
-    outs = req_launcher.get_next_ready()
-    for out in outs:
-        request_metrics, generated_text = out
-        if generated_text:
-            service_metrics.add_request_metrics(request_metrics)
-            generated_texts.append(generated_text)
+    asyncio.run(
+        run_main_loop(
+            model=model,
+            llm_api=llm_api,
+            tokenizer=tokenizer,
+            additional_sampling_params=additional_sampling_params,
+            requests_interval_generator=requests_interval_generator,
+            requests_length_generator=requests_length_generator,
+            corpus_lines=corpus_lines,
+            address_append_value=address_append_value,
+            request_every_minute=request_every_minute,
+            service_metrics=service_metrics,
+            num_ray_clients=num_ray_clients,
+            num_concurrent_requests_per_client=num_concurrent_requests_per_client,
+            generated_texts=generated_texts,
+            pbar=pbar,
+        )
+    )
 
     logger.info(
         f"Results for token benchmark for {model} queried with the {llm_api} api. {service_metrics}"
@@ -214,10 +301,18 @@ def parse_args():
         "--model", type=str, required=True, help="The model to use for this load test."
     )
     args.add_argument(
-        "--num-concurrent-requests",
+        "--num-ray-clients",
         type=int,
-        default=10,
-        help=("The number of concurrent requests to send (default: %(default)s)"),
+        default=2,
+        help=("The number of ray actors to use for benchmark. (default: %(default)s)"),
+    )
+    args.add_argument(
+        "--num-concurrent-requests-per-client",
+        type=int,
+        default=5,
+        help=(
+            "The number of concurrent requests to send per ray actor (default: %(default)s)"
+        ),
     )
     args.add_argument(
         "--timeout",
@@ -535,7 +630,8 @@ if __name__ == "__main__":
         model=args.model,
         timeout=args.timeout,
         max_num_completed_requests=args.max_num_completed_requests,
-        num_concurrent_requests=args.num_concurrent_requests,
+        num_ray_clients=args.num_ray_clients,
+        num_concurrent_requests_per_client=args.num_concurrent_requests_per_client,
         additional_sampling_params=args.additional_sampling_params,
         request_generator_config=request_generator_config,
         ttft_deadline=args.ttft_deadline,

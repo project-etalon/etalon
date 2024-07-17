@@ -44,6 +44,10 @@ class ServiceMetrics:
         return self.metric_store.num_completed_requests
 
     @property
+    def num_errored_requests(self) -> int:
+        return self.metric_store.num_errored_requests
+
+    @property
     def duration(self):
         assert self.end_time is not None
         assert self.start_time is not None

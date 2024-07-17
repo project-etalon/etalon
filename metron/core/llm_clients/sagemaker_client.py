@@ -15,11 +15,10 @@ from metron.metrics.request_metrics import RequestMetrics
 logger = init_logger(__name__)
 
 
-@ray.remote
 class SageMakerClient(BaseLLMClient):
     """Client for OpenAI Chat Completions API."""
 
-    def send_llm_request(
+    async def send_llm_request(
         self, request_config: RequestConfig
     ) -> Tuple[RequestMetrics, str]:
         if not os.environ.get("AWS_ACCESS_KEY_ID"):

@@ -63,7 +63,8 @@ python -m metron.run_benchmark \
 --model "meta-llama/Meta-Llama-3-8B-Instruct" \
 --max-num-completed-requests 150 \
 --timeout 600 \
---num-concurrent-requests 10 \
+--num-ray-clients 2 \
+--num-concurrent-requests-per-client 5 \
 --output-dir "result_outputs" \
 --request-interval-generator-provider "poisson" \
 --poisson-request-interval-generator-qps 0.5 \
@@ -114,9 +115,7 @@ Launch any open source system and setup API keys and URL as shown for [vLLM](#ru
 ```bash
 python -m metron.prefill_profiler \
 --model "meta-llama/Meta-Llama-3-8B-Instruct" \
---max-num-completed-requests 1 \
 --timeout 600 \
---num-concurrent-requests 1 \
 --fixed-request-generator-decode-tokens 16 \
 --output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b" \
 --should-use-given-dir true
@@ -126,10 +125,7 @@ To modify range of prompt tokens for which prefill times get profiled, use the f
 ```bash
 python -m metron.prefill_profiler \
 --model "meta-llama/Meta-Llama-3-8B-Instruct" \
---max-num-completed-requests 1 \
 --timeout 600 \
---num-concurrent-requests 1 \
---fixed-request-generator-decode-tokens 16 \
 --output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b" \
 --should-use-given-dir true \
 --prefill-lengths 256 512 1024 2048 4096 8192 16384 32768 65536

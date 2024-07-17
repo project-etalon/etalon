@@ -42,13 +42,15 @@ request_generator_configs:
     trace_file_name: "sharegpt"
 
 request_configs:
-  - num_concurrent_requests: 100
+  - num_ray_clients: 10
+    num_concurrent_requests_per_client: 10
     timeout: 1200
     max_num_completed_requests: 1000
     additional_sampling_params: {}
     llm_api: "openai"
     request_generator_max_tokens: 8192
-  - num_concurrent_requests: 100
+  - num_ray_clients: 10
+    num_concurrent_requests_per_client: 10
     timeout: 1200
     max_num_completed_requests: 1000
     additional_sampling_params: {}

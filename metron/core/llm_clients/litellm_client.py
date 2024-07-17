@@ -11,11 +11,10 @@ from metron.metrics.request_metrics import RequestMetrics
 logger = init_logger(__name__)
 
 
-@ray.remote
 class LiteLLMClient(BaseLLMClient):
     """Client for LiteLLM Completions API."""
 
-    def send_llm_request(
+    async def send_llm_request(
         self, request_config: RequestConfig
     ) -> Tuple[RequestMetrics, str]:
         # litellm package isn't serializable, so we import it within the function

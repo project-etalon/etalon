@@ -58,7 +58,8 @@ class OpenAIServerWrapper:
         max_num_batched_tokens=512,
         drafter=None,
         drafter_tokens=10,
-        drafter_max_len=2048,
+        drafter_rope_scaling_type=None,
+        drafter_rope_scaling_factor=None,
     ) -> str:
         template_dir_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "engine_templates")
@@ -78,6 +79,15 @@ class OpenAIServerWrapper:
             assert (
                 drafter is not None
             ), "Drafter model required for speculative decoding"
+            assert (
+                drafter_tokens is not None
+            ), "Number of tokens required for speculative decoding"
+            assert (
+                drafter_rope_scaling_type is not None
+            ), "Rope scaling type required for speculative decoding"
+            assert (
+                drafter_rope_scaling_factor is not None
+            ), "Rope scaling factor required for speculative decoding"
             template = env.get_template("vllm_spec_template.jinja")
         elif openai_server_engine == "sarathi":
             assert (
@@ -95,6 +105,10 @@ class OpenAIServerWrapper:
             f'{{"type":"{rope_scaling_type}", "factor": {rope_scaling_factor}}}'
         )
 
+        drafter_rope_scaling = (
+            f'{{"type":"{drafter_rope_scaling_type}", "factor": {drafter_rope_scaling_factor}}}'
+        )
+
         data = {
             "openai_server_model": openai_server_model,
             "openai_api_key": openai_api_key,
@@ -108,7 +122,7 @@ class OpenAIServerWrapper:
             "max_num_batched_tokens": max_num_batched_tokens,
             "drafter": drafter,
             "drafter_tokens": drafter_tokens,
-            "drafter_max_len": drafter_max_len,
+            "drafter_rope_scaling": drafter_rope_scaling,
         }
 
         cmd = template.render(data)
@@ -148,6 +162,10 @@ class OpenAIServerWrapper:
                 drafter=drafter,
                 drafter_tokens=drafter_tokens,
                 drafter_max_len=drafter_max_len,
+                drafter_rope_scaling_type=(
+                    "linear" if openai_server_engine in ["vllm", "vllm_spec"] else "dynamic"
+                ),
+                drafter_rope_scaling_factor=16.0,
             )
             logger.info(
                 f"Launching OPEN AI server with command: {openai_server_command}"

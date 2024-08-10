@@ -9,7 +9,6 @@ models:
     traces: null
     drafter: ibm-fms/llama3-8b-accelerator
     drafter_tokens: 4
-    drafter_max_len: 2048
 
 parallel_specs:
   - name: tp_1
@@ -17,11 +16,11 @@ parallel_specs:
     pp_dimension: 1
 
 request_generator_configs:
-  # - start_qps: 1
-  #   request_interval_generator_provider: "poisson"
-  #   request_length_generator_provider: "trace"
-  #   trace_request_length_generator_trace_file: "data/processed_traces/sharegpt_8k_filtered_stats_llama2_tokenizer.csv"
-  #   trace_file_name: "sharegpt"
+  - start_qps: 1
+    request_interval_generator_provider: "poisson"
+    request_length_generator_provider: "trace"
+    trace_request_length_generator_trace_file: "data/processed_traces/sharegpt_8k_filtered_stats_llama2_tokenizer.csv"
+    trace_file_name: "sharegpt"
   - start_qps: 1
     request_interval_generator_provider: "poisson"
     request_length_generator_provider: "trace"
@@ -35,4 +34,12 @@ request_configs:
     max_num_completed_requests: 1000
     additional_sampling_params: {}
     llm_api: "openai"
-    request_generator_max_tokens: 2048
+    request_generator_max_tokens: 8192
+  - num_ray_clients: 10
+    num_concurrent_requests_per_client: 10
+    timeout: 1200
+    max_num_completed_requests: 1000
+    additional_sampling_params: {}
+    llm_api: "openai"
+    request_generator_max_tokens: 16384
+

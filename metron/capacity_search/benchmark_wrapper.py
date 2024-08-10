@@ -140,7 +140,6 @@ class OpenAIServerWrapper:
         pp=1,
         drafter=None,
         drafter_tokens=10,
-        drafter_max_len=2048,
     ):
         """
         Setup the OPEN AI server
@@ -161,7 +160,6 @@ class OpenAIServerWrapper:
                 max_num_batched_tokens=512,
                 drafter=drafter,
                 drafter_tokens=drafter_tokens,
-                drafter_max_len=drafter_max_len,
                 drafter_rope_scaling_type=(
                     "linear" if openai_server_engine in ["vllm", "vllm_spec"] else "dynamic"
                 ),
@@ -244,7 +242,6 @@ def run(
             pp=job_config.parallel_config.pp_dimension,
             drafter=job_config.model_config.drafter,
             drafter_tokens=job_config.model_config.drafter_tokens,
-            drafter_max_len=job_config.model_config.drafter_max_len,
         )
     )
 

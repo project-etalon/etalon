@@ -35,6 +35,9 @@ class ModelConfig:
     identifier: str
     parallel_specs: List[str] = field(default_factory=list)
     traces: List[str] = field(default_factory=list)
+    drafter: Optional[str] = None
+    drafter_tokens: Optional[int] = None
+    drafter_max_len: Optional[int] = None
 
     def get_key(self):
         return f"{self.name}"

@@ -1,0 +1,38 @@
+servers:
+  - openai_server_engine: vllm_spec
+    openai_api_key: token-abc123
+
+models:
+  - name: llama-3-8b-instruct
+    identifier: NousResearch/Meta-Llama-3-8B-Instruct
+    parallel_specs: ["tp_1"]
+    traces: null
+    drafter: ibm-fms/llama3-8b-accelerator
+    drafter_tokens: 4
+    drafter_max_len: 2048
+
+parallel_specs:
+  - name: tp_1
+    tp_dimension: 1
+    pp_dimension: 1
+
+request_generator_configs:
+  # - start_qps: 1
+  #   request_interval_generator_provider: "poisson"
+  #   request_length_generator_provider: "trace"
+  #   trace_request_length_generator_trace_file: "data/processed_traces/sharegpt_8k_filtered_stats_llama2_tokenizer.csv"
+  #   trace_file_name: "sharegpt"
+  - start_qps: 1
+    request_interval_generator_provider: "poisson"
+    request_length_generator_provider: "trace"
+    trace_request_length_generator_trace_file: "data/processed_traces/arxiv_summarization_filtered_stats_llama2_tokenizer.csv"
+    trace_file_name: "arxiv"
+
+request_configs:
+  - num_ray_clients: 10
+    num_concurrent_requests_per_client: 10
+    timeout: 1200
+    max_num_completed_requests: 1000
+    additional_sampling_params: {}
+    llm_api: "openai"
+    request_generator_max_tokens: 2048

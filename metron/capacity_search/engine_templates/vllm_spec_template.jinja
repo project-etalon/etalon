@@ -1,0 +1,15 @@
+python -m vllm.entrypoints.openai.api_server \
+--model {{ openai_server_model }} \
+--dtype auto \
+--api-key {{ openai_api_key }} \
+-tp {{ tp }} \
+-pp {{ pp }} \
+--port {{ port }} \
+--rope-scaling '{{ rope_scaling }}' \
+--speculative-model {{ drafter }} \
+--num-speculative-tokens {{ drafter_tokens }} \
+--speculative-max-model-len {{ drafter_max_len }} \
+--use-v2-block-manager \
+--uvicorn-log-level error \
+--disable-log-stats \
+--disable-log-requests

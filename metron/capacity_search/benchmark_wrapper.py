@@ -56,6 +56,9 @@ class OpenAIServerWrapper:
         rope_scaling_type=None,
         rope_scaling_factor=None,
         max_num_batched_tokens=512,
+        drafter=None,
+        drafter_tokens=10,
+        drafter_max_len=2048,
     ) -> str:
         template_dir_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "engine_templates")
@@ -68,6 +71,14 @@ class OpenAIServerWrapper:
                 openai_api_key is not None
             ), "OpenAI API key is required for vLLM engine"
             template = env.get_template("vllm_template.jinja")
+        elif openai_server_engine == "vllm_spec":
+            assert (
+                openai_api_key is not None
+            ), "OpenAI API key is required for vLLM engine"
+            assert (
+                drafter is not None
+            ), "Drafter model required for speculative decoding"
+            template = env.get_template("vllm_spec_template.jinja")
         elif openai_server_engine == "sarathi":
             assert (
                 openai_api_key is not None
@@ -95,9 +106,14 @@ class OpenAIServerWrapper:
             "rope_scaling_factor": rope_scaling_factor,
             "cuda_devices": cuda_devices,
             "max_num_batched_tokens": max_num_batched_tokens,
+            "drafter": drafter,
+            "drafter_tokens": drafter_tokens,
+            "drafter_max_len": drafter_max_len,
         }
 
         cmd = template.render(data)
+
+        print("running command: ", cmd, flush=True)
 
         return cmd
 
@@ -108,13 +124,16 @@ class OpenAIServerWrapper:
         openai_api_key=None,
         tp=1,
         pp=1,
+        drafter=None,
+        drafter_tokens=10,
+        drafter_max_len=2048,
     ):
         """
         Setup the OPEN AI server
         If no engine is specified, it defaults to actual OPEN AI server itself.
         """
         openai_server_command = None
-        if openai_server_engine in ["vllm", "sarathi", "tgi"]:
+        if openai_server_engine in ["vllm", "vllm_spec", "sarathi", "tgi"]:
             openai_server_command = self.get_openai_server_command(
                 openai_server_engine=openai_server_engine,
                 openai_server_model=openai_server_model,
@@ -122,10 +141,13 @@ class OpenAIServerWrapper:
                 tp=tp,
                 pp=pp,
                 rope_scaling_type=(
-                    "linear" if openai_server_engine == "vllm" else "dynamic"
+                    "linear" if openai_server_engine in ["vllm", "vllm_spec"] else "dynamic"
                 ),
                 rope_scaling_factor=4.0,
                 max_num_batched_tokens=512,
+                drafter=drafter,
+                drafter_tokens=drafter_tokens,
+                drafter_max_len=drafter_max_len,
             )
             logger.info(
                 f"Launching OPEN AI server with command: {openai_server_command}"
@@ -156,7 +178,7 @@ def setup_api_environment(
 ):
     # just make sure that OPENAI_API_KEY/BASE doesn't change for other ray tasks when setting for this one.
     # checked by printing, and it doesn't change
-    if openai_server_engine == "vllm" or openai_server_engine == "sarathi":
+    if openai_server_engine in ["vllm", "vllm_spec", "sarathi"]:
         assert openai_api_key is not None, "OpenAI API key is required for VLLM engine"
         assert openai_port is not None, "OpenAI port is required for VLLM engine"
         os.environ["OPENAI_API_KEY"] = openai_api_key
@@ -202,6 +224,9 @@ def run(
             openai_api_key=job_config.server_config.openai_api_key,
             tp=job_config.parallel_config.tp_dimension,
             pp=job_config.parallel_config.pp_dimension,
+            drafter=job_config.model_config.drafter,
+            drafter_tokens=job_config.model_config.drafter_tokens,
+            drafter_max_len=job_config.model_config.drafter_max_len,
         )
     )
 

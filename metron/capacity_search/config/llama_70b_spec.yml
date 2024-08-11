@@ -1,4 +1,6 @@
 servers:
+  - openai_server_engine: vllm
+    openai_api_key: token-abc123
   - openai_server_engine: vllm_spec
     openai_api_key: token-abc123
 

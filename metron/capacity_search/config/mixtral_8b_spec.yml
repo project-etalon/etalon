@@ -5,16 +5,16 @@ servers:
     openai_api_key: token-abc123
 
 models:
-  - name: llama-3-8b-instruct
-    identifier: NousResearch/Meta-Llama-3-8B-Instruct
-    parallel_specs: ["tp_1"]
+  - name: mixtral
+    identifier: mistralai/Mixtral-8x7B-Instruct-v0.1
+    parallel_specs: ["tp_4"]
     traces: null
-    drafter: ibm-fms/llama3-8b-accelerator
+    drafter: text-generation-inference/Mixtral-8x7B-Instruct-v0.1-medusa
     drafter_tokens: 4
 
 parallel_specs:
-  - name: tp_1
-    tp_dimension: 1
+  - name: tp_4
+    tp_dimension: 4
     pp_dimension: 1
 
 request_generator_configs:
@@ -44,4 +44,3 @@ request_configs:
     additional_sampling_params: {}
     llm_api: "openai"
     request_generator_max_tokens: 16384
-

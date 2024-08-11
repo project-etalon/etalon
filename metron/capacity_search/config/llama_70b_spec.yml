@@ -5,14 +5,14 @@ servers:
 models:
   - name: llama-3-8b-instruct
     identifier: NousResearch/Meta-Llama-3-8B-Instruct
-    parallel_specs: ["tp_1"]
+    parallel_specs: ["tp_8"]
     traces: null
-    drafter: ibm-fms/llama3-8b-accelerator
+    drafter: ibm-fms/llama3-70b-accelerator
     drafter_tokens: 4
 
 parallel_specs:
-  - name: tp_1
-    tp_dimension: 1
+  - name: tp_8
+    tp_dimension: 8
     pp_dimension: 1
 
 request_generator_configs:
@@ -42,4 +42,3 @@ request_configs:
     additional_sampling_params: {}
     llm_api: "openai"
     request_generator_max_tokens: 16384
-

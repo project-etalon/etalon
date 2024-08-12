@@ -243,7 +243,7 @@ class CapacitySearch:
             tbt_deadline=self.args.tbt_slo,
             wandb_project=self.args.wandb_project,
             wandb_group=self.args.wandb_group,
-            wandb_run_name=f"qps_{qps}_model_{self.job_config.model_config.name}_engine_{self.job_config.server_config.openai_server_engine}",
+            wandb_run_name=f"qps_{qps}_model_{self.job_config.model_config.name}_engine_{self.job_config.server_config.openai_server_engine}_type_{self.args.slo_type}",
             should_write_metrics=self.args.should_write_metrics_to_wandb,
         )
 

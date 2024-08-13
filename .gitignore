@@ -257,3 +257,5 @@ prefill_experiments/
 cap_experiments/
 experiments/
 experiments_*
+data/
+tgi/

@@ -60,6 +60,7 @@ class OpenAIServerWrapper:
         drafter_tokens=10,
         drafter_rope_scaling_type=None,
         drafter_rope_scaling_factor=None,
+        max_model_len=32768,
     ) -> str:
         template_dir_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "engine_templates")
@@ -98,6 +99,8 @@ class OpenAIServerWrapper:
             cuda_devices = os.environ["CUDA_VISIBLE_DEVICES"]
             del os.environ["CUDA_VISIBLE_DEVICES"]
             template = env.get_template("tgi_template.jinja")
+        elif openai_server_engine == "sglang":
+            template = env.get_template("sglang.jinja")
         else:
             raise ValueError(f"Invalid engine: {openai_server_engine}")
 
@@ -123,6 +126,7 @@ class OpenAIServerWrapper:
             "drafter": drafter,
             "drafter_tokens": drafter_tokens,
             "drafter_rope_scaling": drafter_rope_scaling,
+            "max_model_len": max_model_len,
         }
 
         cmd = template.render(data)
@@ -146,7 +150,7 @@ class OpenAIServerWrapper:
         If no engine is specified, it defaults to actual OPEN AI server itself.
         """
         openai_server_command = None
-        if openai_server_engine in ["vllm", "vllm_spec", "sarathi", "tgi"]:
+        if openai_server_engine in ["vllm", "vllm_spec", "sarathi", "tgi", "sglang"]:
             openai_server_command = self.get_openai_server_command(
                 openai_server_engine=openai_server_engine,
                 openai_server_model=openai_server_model,
@@ -194,9 +198,10 @@ def setup_api_environment(
 ):
     # just make sure that OPENAI_API_KEY/BASE doesn't change for other ray tasks when setting for this one.
     # checked by printing, and it doesn't change
-    if openai_server_engine in ["vllm", "vllm_spec", "sarathi"]:
-        assert openai_api_key is not None, "OpenAI API key is required for VLLM engine"
-        assert openai_port is not None, "OpenAI port is required for VLLM engine"
+    if openai_server_engine in ["vllm", "vllm_spec", "sarathi", "tgi", "sglang"]:
+        if openai_server_engine in ["vllm", "vllm_spec"]:
+            assert openai_api_key is not None, "OpenAI API key is required for VLLM engine"
+        assert openai_port is not None, "OpenAI port is required"
         os.environ["OPENAI_API_KEY"] = openai_api_key
         os.environ["OPENAI_API_BASE"] = f"http://localhost:{openai_port}/v1"
 

@@ -59,9 +59,11 @@ class CapacitySearch:
         self.prefill_model = None
         self.transformer = None
 
+        self.ttft_slack_slo = job_config.server_config.ttft_slack_slo[job_config.request_generator_config.trace_file_name]
+
         if self.args.slo_type == "deadline":
             prefill_model_path = os.path.join(
-                self.args.profile_dir, f"prefill_predictor.pkl"
+                job_config.server_config.profile_dir, f"prefill_predictor.pkl"
             )
             self.prefill_model: RandomForestRegressor = joblib.load(prefill_model_path)
             self.transformer = PolynomialFeatures(
@@ -114,7 +116,12 @@ class CapacitySearch:
             np.array(prompt_tokens_array).reshape(-1, 1)
         ).tolist()
         ttft_deadlines = self.prefill_model.predict(prompt_tokens_array).tolist()
-        ttft_deadlines = [i + self.args.ttft_slack_slo for i in ttft_deadlines]
+        print("TTFT Slack SLO: ", self.ttft_slack_slo,
+              "Trace: ", self.job_config.request_generator_config.trace_file_name,
+              "Engine: ", self.job_config.server_config.openai_server_engine,
+              flush=True)
+        ttft_deadlines = [i + self.ttft_slack_slo for i in ttft_deadlines]
+        # ttft_deadlines = [1] * len(ttft_array)
 
         # Create inter-token times array for each request (TTFT + TBT) to calculate deadline miss rate
         tbt_deadlines = [self.args.tbt_slo] * len(ttft_array)
@@ -235,7 +242,6 @@ class CapacitySearch:
                 self.args.output_dir,
                 self.job_config.server_config.openai_server_engine,
                 self.job_config.model_config.name,
-                # f"ttft_slack_{self.args.ttft_slack_slo}_tbt_{self.args.tbt_slo}",
                 self.job_config.request_generator_config.trace_file_name,
                 f"{hash_key}_q{qps}",
             ),
@@ -340,7 +346,7 @@ class CapacitySearch:
 
         logger.info(
             f"Max QPS under SLO for {self.job_config.get_human_readable_name()} - "
-            f"QPS: {max_qps_under_sla}, "
+            f"MAX_QPS_VALUE: {max_qps_under_sla}, "
             f"TBT P{self.args.tbt_percentile * 100}: {tbt_at_max_qps}, "
             f"TTFT P{self.args.ttft_percentile * 100}: {ttft_at_max_qps}, "
             f"TPOT P{self.args.tpot_percentile * 100}: {tpot_at_max_qps}, "

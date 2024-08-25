@@ -1,8 +1,18 @@
 servers:
   - openai_server_engine: vllm
     openai_api_key: token-abc123
+    profile_dir: prefill_experiments/prefill_profiler/llama-3-8b/vllm
+    ttft_slack_slo: {
+      "sharegpt": 0.9193410302512348,
+      "arxiv": 0.742189068486914,
+    }
   - openai_server_engine: vllm_spec
     openai_api_key: token-abc123
+    profile_dir: prefill_experiments/prefill_profiler/llama-3-8b/vllm_spec
+    ttft_slack_slo: {
+      "sharegpt": 0.9186956448014826,
+      "arxiv": 0.7362177558243275,
+    }
 
 models:
   - name: llama-3-8b-instruct

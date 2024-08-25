@@ -175,6 +175,7 @@ class PrefillProfiler:
 
         if self.args.wandb_project and self.args.should_write_metrics:
             wandb.init(
+                mode='offline',
                 project=self.args.wandb_project,
                 group=self.args.wandb_group,
                 name=f"prefill_profiler_{self.args.model}_{self.args.time_stamp}",

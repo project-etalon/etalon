@@ -198,7 +198,7 @@ def setup_api_environment(
 ):
     # just make sure that OPENAI_API_KEY/BASE doesn't change for other ray tasks when setting for this one.
     # checked by printing, and it doesn't change
-    if openai_server_engine in ["vllm", "vllm_spec", "sarathi", "tgi", "sglang"]:
+    if openai_server_engine in ["vllm", "vllm_spec", "sarathi", "tgi", "sglang", "default"]:
         if openai_server_engine in ["vllm", "vllm_spec"]:
             assert openai_api_key is not None, "OpenAI API key is required for VLLM engine"
         assert openai_port is not None, "OpenAI port is required"
@@ -236,6 +236,8 @@ def run(
     openai_server_wrapper = OpenAIServerWrapper.options(
         num_gpus=num_gpus, resources=resources
     ).remote(replica_resource_mapping=replica_resource_mapping, port=openai_port)
+
+    print(f"\n\nOPEN AI SERVER {job_config.server_config.openai_server_engine} PORT: {openai_port}\n\n", flush=True)
 
     # Launch the OPEN AI server
     ray.get(

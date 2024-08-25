@@ -103,6 +103,7 @@ class MetricStore:
             return
 
         wandb.init(
+            mode='offline',
             project=self.wandb_project,
             group=self.wandb_group,
             name=self.wandb_run_name,

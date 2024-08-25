@@ -1,8 +1,18 @@
 servers:
-  - openai_server_engine: tgi
-    openai_api_key: token-abc123
   - openai_server_engine: sglang
     openai_api_key: token-abc123
+    profile_dir: prefill_experiments/prefill_profiler/qwen/sglang
+    ttft_slack_slo: {
+      "sharegpt": 0.9572672814596445,
+      "arxiv": 0.89776420481503,
+    }
+  - openai_server_engine: default
+    openai_api_key: token-abc123
+    profile_dir: prefill_experiments/prefill_profiler/qwen/default
+    ttft_slack_slo: {
+      "sharegpt": 0.9505133323837072,
+      "arxiv": 0.8729274764191359,
+    }
 
 models:
   - name: qwen2-1.5b

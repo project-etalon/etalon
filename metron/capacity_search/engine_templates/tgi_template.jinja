@@ -2,7 +2,7 @@ docker run \
 --gpus {{ cuda_devices }} \
 --shm-size 64g \
 -p {{ port }}:80 \
--v /mnt/cache:/data ghcr.io/huggingface/text-generation-inference:2.0.4 \
+-v $PWD/data:/data ghcr.io/huggingface/text-generation-inference:2.2.0 \
 --model-id {{ openai_server_model }} \
 --rope-scaling {{ rope_scaling_type }} \
 --rope-factor {{ rope_scaling_factor }}

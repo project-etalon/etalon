@@ -259,3 +259,5 @@ experiments/
 experiments_*
 data/
 tgi/
+.locks/
+models--*

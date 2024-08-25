@@ -13,7 +13,9 @@ def _get_hash(key):
 class ServerConfig:
     openai_server_engine: Optional[str] = None
     openai_api_key: Optional[str] = None
-    port: Optional[int] = 8000
+    port: Optional[int] = None
+    profile_dir: Optional[str] = None
+    ttft_slack_slo: Optional[Dict[str, float]] = None
 
     def get_key(self):
         return f"{self.openai_server_engine}_{self.openai_api_key}_{self.port}"
@@ -108,7 +110,7 @@ class RequestGeneratorConfig:
         return key
 
     def get_human_readable_name(self):
-        return f"Start QPS: {self.start_qps}, Request interval generator: {self.request_interval_generator_provider}, Request length generator: {self.request_length_generator_provider}"
+        return f"Start QPS: {self.start_qps}, Request interval generator: {self.request_interval_generator_provider}, Request length generator: {self.request_length_generator_provider}, Request length generator file: {self.trace_request_length_generator_trace_file}"
 
     def to_config_dict(self):
         config_dict = {
@@ -281,17 +283,17 @@ class JobConfig:
         job_configs = []
         port = 8000
         for (
+            server_config,
             model_config,
             parallel_config,
             request_generator_config,
             request_config,
-            server_config,
         ) in product(
+            config["servers"],
             config["models"],
             config["parallel_specs"],
             config["request_generator_configs"],
             config["request_configs"],
-            config["servers"],
         ):
             model_config = ModelConfig(**model_config)
             parallel_config = ParallelConfig(**parallel_config)
@@ -314,10 +316,10 @@ class JobConfig:
                     and server_config.openai_server_engine
                     in ["vllm", "lightllm", "fastertransformers", "sarathi-serve"]
                 )
-                or (
-                    model_config.name != "gpt-3.5-turbo"
-                    and server_config.openai_server_engine == "default"
-                )
+                # or (
+                    # model_config.name != "gpt-3.5-turbo"
+                    # server_config.openai_server_engine == "default"
+                # )
                 or (
                     request_generator_config.trace_file_name == "sharegpt"
                     and request_config.request_generator_max_tokens == 16384
@@ -329,7 +331,7 @@ class JobConfig:
             ):
                 continue
 
-            port += 1
+            port += 100
 
             job_config = cls(
                 model_config,

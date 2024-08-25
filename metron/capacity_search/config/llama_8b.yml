@@ -1,23 +1,32 @@
 servers:
-  - openai_server_engine: vllm
+  - openai_server_engine: sglang
     openai_api_key: token-abc123
-  - openai_server_engine: sarathi
+    profile_dir: prefill_experiments/prefill_profiler/llama-3-8b/sglang
+    ttft_slack_slo: {
+      "sharegpt": 0.9572672814596445,
+      "arxiv": 0.89776420481503,
+    }
+  - openai_server_engine: default
     openai_api_key: token-abc123
-  # - openai_server_engine: tgi
-  #   openai_api_key: token-abc123
+    profile_dir: prefill_experiments/prefill_profiler/llama-3-8b/default
+    ttft_slack_slo: {
+      "sharegpt": 0.9572672814596445,
+      "arxiv": 0.89776420481503,
+    }
 
 models:
   - name: llama-3-8b-instruct
     identifier: NousResearch/Meta-Llama-3-8B-Instruct
     parallel_specs: ["tp_1"]
     traces: null
+  - name: llama-3-8b-32k
+    identifier: NurtureAI/Meta-Llama-3-8B-Instruct-32k
+    parallel_specs: ["tp_1"]
+    traces: null
 
 parallel_specs:
   - name: tp_1
     tp_dimension: 1
-    pp_dimension: 1
-  - name: tp_8
-    tp_dimension: 8
     pp_dimension: 1
 
 request_generator_configs:
@@ -35,15 +44,15 @@ request_generator_configs:
 request_configs:
   - num_ray_clients: 25
     num_concurrent_requests_per_client: 40
-    timeout: 1800
-    max_num_completed_requests: 10000
+    timeout: 30
+    max_num_completed_requests: 10
     additional_sampling_params: {}
     llm_api: "openai"
     request_generator_max_tokens: 8192
   - num_ray_clients: 25
     num_concurrent_requests_per_client: 40
-    timeout: 1800
-    max_num_completed_requests: 10000
+    timeout: 30
+    max_num_completed_requests: 10
     additional_sampling_params: {}
     llm_api: "openai"
     request_generator_max_tokens: 16384

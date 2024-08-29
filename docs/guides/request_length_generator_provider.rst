@@ -1,7 +1,7 @@
 Length Generators
 =================
 
-Length generators determine the number of prompt and decode tokens for each request. The following length generators are available in ``metron``:
+Length generators determine the number of prompt and decode tokens for each request. The following length generators are available in ``etalon``:
 
 Uniform Length Generator
 ------------------------
@@ -10,7 +10,7 @@ The uniform length generator generates the number of prompt and decode tokens ac
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark
+    python -m etalon.run_benchmark
         # other arguments
         ... \
         --request-length-generator-provider "uniform" \
@@ -28,7 +28,7 @@ The Zipf length generator generates the number of prompt and decode tokens accor
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark
+    python -m etalon.run_benchmark
         # other arguments
         ... \
         --request-length-generator-provider "zipf" \
@@ -48,7 +48,7 @@ The trace length generator generates the number of prompt and decode tokens acco
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark
+    python -m etalon.run_benchmark
         # other arguments
         ... \
         --request-length-generator-provider "trace" \
@@ -67,7 +67,7 @@ The fixed length generator generates the number of prompt and decode tokens acco
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark
+    python -m etalon.run_benchmark
         # other arguments
         ... \
         --request-length-generator-provider "fixed" \

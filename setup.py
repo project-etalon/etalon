@@ -57,17 +57,17 @@ def get_requirements() -> List[str]:
 
 
 setup(
-    name="metron",
+    name="etalon",
     version="0.1.0",
-    author="Metron Team",
+    author="etalon Team",
     license="Apache 2.0",
     description="A framework for benchmarking LLM Inference Systems",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
-    url="https://github.com/project-metron/metron",
+    url="https://github.com/project-etalon/etalon",
     project_urls={
-        "Homepage": "https://github.com/project-metron/metron",
-        "Documentation": "project-metron.readthedocs.io",
+        "Homepage": "https://github.com/project-etalon/etalon",
+        "Documentation": "project-etalon.readthedocs.io",
     },
     classifiers=[
         "Programming Language :: Python :: 3.8",

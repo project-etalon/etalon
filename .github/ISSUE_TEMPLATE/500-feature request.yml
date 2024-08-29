@@ -1,5 +1,5 @@
 name: 🚀 Feature request
-description: Submit a proposal/request for a new Metron feature
+description: Submit a proposal/request for a new etalon feature
 title: "[Feature]: "
 labels: ["feature request"]
 
@@ -7,7 +7,7 @@ body:
 - type: markdown
   attributes:
     value: >
-      #### Before submitting an issue, please make sure the issue hasn't been already addressed by searching through [the existing and past issues](https://github.com/project-metron/metron/issues?q=is%3Aissue+sort%3Acreated-desc+).
+      #### Before submitting an issue, please make sure the issue hasn't been already addressed by searching through [the existing and past issues](https://github.com/project-etalon/etalon/issues?q=is%3Aissue+sort%3Acreated-desc+).
 - type: textarea
   attributes:
     label: 🚀 The feature, motivation and pitch

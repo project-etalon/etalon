@@ -1,7 +1,7 @@
 Open Source Systems
 ===================
 
-``metron`` can be run with any open source LLM inference system. If open source system does not provide OpenAI Compatible APIs, then new LLM clients can be implemented to support new open source system as explained in :doc:`../guides/new_llm_client`.
+``etalon`` can be run with any open source LLM inference system. If open source system does not provide OpenAI Compatible APIs, then new LLM clients can be implemented to support new open source system as explained in :doc:`../guides/new_llm_client`.
 
 .. note::
 
@@ -32,7 +32,7 @@ Benchmark can be run as shown below:
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark \
+    python -m etalon.run_benchmark \
     --model "meta-llama/Meta-Llama-3-8B-Instruct" \
     --max-num-completed-requests 20 \
     --request-interval-generator-provider "gamma" \
@@ -44,7 +44,7 @@ Be sure to update ``--model`` flag to same model used to launch vLLM.
 
 .. note::
 
-    ``metron`` supports different generator providers for request interval and request length. For more details, refer to :doc:`../guides/request_generator_providers`.
+    ``etalon`` supports different generator providers for request interval and request length. For more details, refer to :doc:`../guides/request_generator_providers`.
 
 .. _wandb_args_open_source_systems:
 
@@ -66,7 +66,7 @@ There are many more arguments for running benchmark, run the following to know m
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark -h
+    python -m etalon.run_benchmark -h
 
 
 Saving Results

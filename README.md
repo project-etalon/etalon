@@ -10,7 +10,7 @@ Tool to benchmark LLM Inference Systems
 </h3>
 
 <p align="center">
-| <a href="https://project-metron.readthedocs.io/en/latest/"><b>Documentation</b></a> | <a href="https://arxiv.org/abs/2407.07000"><b>Paper</b></a> |
+| <a href="https://project-etalon.readthedocs.io/en/latest/"><b>Documentation</b></a> | <a href="https://arxiv.org/abs/2407.07000"><b>Paper</b></a> |
 
 </p>
 
@@ -20,18 +20,18 @@ Tool to benchmark LLM Inference Systems
 
 ### Clone repository
 ```bash
-git clone https://github.com/project-metron/metron.git
+git clone https://github.com/project-etalon/etalon.git
 ```
 
 ### Create conda environment
 ```bash
-conda create -n metron python=3.10
-conda activate metron
+conda create -n etalon python=3.10
+conda activate etalon
 ```
 
-### Install Metron
+### Install etalon
 ```bash
-cd metron
+cd etalon
 pip install -e .
 ```
 
@@ -59,7 +59,7 @@ export OPENAI_API_BASE=https://api.endpoints.anyscale.com/v1
 ```
 #### Running Benchmark
 ```bash
-python -m metron.run_benchmark \
+python -m etalon.run_benchmark \
 --model "meta-llama/Meta-Llama-3-8B-Instruct" \
 --max-num-completed-requests 150 \
 --timeout 600 \
@@ -81,11 +81,11 @@ python -m metron.run_benchmark \
 
 There are many more arguments for running benchmark, run the following to know more:
 ```bash
-python -m metron.run_benchmark -h
+python -m etalon.run_benchmark -h
 ```
 
 ### Running with Open Source Systems
-Metron can be run with any open source LLM inference system. If open source system does not provide OpenAI Compatible APIs, then kindly implement new LLM clients to support new open source system as explained in [here](#implementing-new-llm-clients).
+etalon can be run with any open source LLM inference system. If open source system does not provide OpenAI Compatible APIs, then kindly implement new LLM clients to support new open source system as explained in [here](#implementing-new-llm-clients).
 
 Here we give an example with vLLM.
 
@@ -109,11 +109,11 @@ And then we can run the benchmark as shown [here](#running-benchmark). Be sure t
 The results of the benchmark are saved in the results directory specified by the `--output-dir` argument.
 
 ## Running Prefill Profiler
-To profile prefill times of open source systems and create a prefill time predictor for a given model and open source system, based on input prompt length, we can run `metron.prefill_profiler`.
+To profile prefill times of open source systems and create a prefill time predictor for a given model and open source system, based on input prompt length, we can run `etalon.prefill_profiler`.
 
 Launch any open source system and setup API keys and URL as shown for [vLLM](#running-with-open-source-systems).
 ```bash
-python -m metron.prefill_profiler \
+python -m etalon.prefill_profiler \
 --model "meta-llama/Meta-Llama-3-8B-Instruct" \
 --timeout 600 \
 --fixed-request-generator-decode-tokens 16 \
@@ -123,7 +123,7 @@ python -m metron.prefill_profiler \
 
 To modify range of prompt tokens for which prefill times get profiled, use the flag ``--prefill-lengths`` as follows:
 ```bash
-python -m metron.prefill_profiler \
+python -m etalon.prefill_profiler \
 --model "meta-llama/Meta-Llama-3-8B-Instruct" \
 --timeout 600 \
 --output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b" \
@@ -134,15 +134,15 @@ python -m metron.prefill_profiler \
 ## Running Capacity Search
 `Important`: Run prefill profiler for a given model and open source system before running capacity search of `deadline-based` SLO type.
 
-Refer to [readme](metron/capacity_search/README.md) file of `metron/capacity_search` folder to know more about how to run capacity search.
+Refer to [readme](etalon/capacity_search/README.md) file of `etalon/capacity_search` folder to know more about how to run capacity search.
 
 ## Implementing New LLM Clients
 
-To implement a new LLM client, you need to implement the base class `metron.llm_client.BaseLLMClient` and decorate it as a ray actor.
+To implement a new LLM client, you need to implement the base class `etalon.llm_client.BaseLLMClient` and decorate it as a ray actor.
 
 ```python
 
-from metron.llm_client import BaseLLMClient
+from etalon.llm_client import BaseLLMClient
 import ray
 
 
@@ -166,8 +166,8 @@ class CustomLLMClient(BaseLLMClient):
 ## Citation
 If you use our work, please consider citing our paper:
 ```cite
-@misc{agrawal2024metronholisticperformanceevaluation,
-      title={Metron: Holistic Performance Evaluation Framework for LLM Inference Systems}, 
+@misc{agrawal2024etalonholisticperformanceevaluation,
+      title={etalon: Holistic Performance Evaluation Framework for LLM Inference Systems}, 
       author={Amey Agrawal and Anmol Agarwal and Nitin Kedia and Jayashree Mohan and Souvik Kundu and Nipun Kwatra and Ramachandran Ramjee and Alexey Tumanov},
       year={2024},
       eprint={2407.07000},

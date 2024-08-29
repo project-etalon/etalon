@@ -1,4 +1,4 @@
-# Metron-docs
+# etalon-docs
 
 ## Setup
 ```bash

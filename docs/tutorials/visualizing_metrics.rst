@@ -1,7 +1,7 @@
 Visualizing Metrics
 ===================
 
-``metron`` logs all the metrics to wandb. You can visualize these metrics using wandb dashboard. Check :ref:`wandb_setup` to setup wandb and :ref:`wandb_args_open_source_systems` to log metrics to wandb.
+``etalon`` logs all the metrics to wandb. You can visualize these metrics using wandb dashboard. Check :ref:`wandb_setup` to setup wandb and :ref:`wandb_args_open_source_systems` to log metrics to wandb.
 
 To visualize the metrics, follow the steps below:
 

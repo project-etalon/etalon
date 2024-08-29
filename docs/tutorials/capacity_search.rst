@@ -24,7 +24,7 @@ Fluidity-Index Based SLO
 
 .. code-block:: shell
 
-    python -m metron.capacity_search.main \
+    python -m etalon.capacity_search.main \
     --output-dir "cap_experiments/capacity_search/" \
     --profile-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b" \
     --slo-type deadline \
@@ -33,7 +33,7 @@ Fluidity-Index Based SLO
     --deadline-miss-rate-slo 0.1 \
     --deadline-miss-rate-percentile 0.99 \
     --max-iterations 10 \
-    --config-path ./metron/capacity_search/config/llama_8b.yml
+    --config-path ./etalon/capacity_search/config/llama_8b.yml
 
 .. note::
 
@@ -44,7 +44,7 @@ TBT Based SLO
 
 .. code-block:: shell
 
-    python -m metron.capacity_search.main \
+    python -m etalon.capacity_search.main \
     --output-dir "cap_experiments/capacity_search/" \
     --slo-type tbt_ttft \
     --tbt-slo 0.03 \
@@ -52,14 +52,14 @@ TBT Based SLO
     --ttft-slo 0.3 \
     --ttft-percentile 0.9 \
     --max-iterations 10 \
-    --config-path ./metron/capacity_search/config/llama_8b.yml
+    --config-path ./etalon/capacity_search/config/llama_8b.yml
 
 TPOT Based SLO
 ~~~~~~~~~~~~~~
 
 .. code-block:: shell
 
-    python -m metron.capacity_search.main \
+    python -m etalon.capacity_search.main \
     --output-dir "cap_experiments/capacity_search/" \
     --slo-type ttft_tpot \
     --ttft-slo 0.3 \
@@ -67,7 +67,7 @@ TPOT Based SLO
     --tpot-slo 0.03 \
     --tpot-percentile 0.9 \
     --max-iterations 10 \
-    --config-path ./metron/capacity_search/config/llama_8b.yml
+    --config-path ./etalon/capacity_search/config/llama_8b.yml
 
 Caching
 ~~~~~~~

@@ -7,7 +7,7 @@ body:
 - type: markdown
   attributes:
     value: >
-      #### Before submitting an issue, please make sure the issue hasn't been already addressed by searching through [the existing and past issues](https://github.com/project-metron/metron/issues?q=is%3Aissue+sort%3Acreated-desc+).
+      #### Before submitting an issue, please make sure the issue hasn't been already addressed by searching through [the existing and past issues](https://github.com/project-etalon/etalon/issues?q=is%3Aissue+sort%3Acreated-desc+).
 - type: textarea
   attributes:
     label: Your current environment
@@ -17,12 +17,12 @@ body:
     required: true
 - type: textarea
   attributes:
-    label: How you are installing Metron
+    label: How you are installing etalon
     description: |
       Paste the full command you are trying to execute.
     value: |
       ```sh
-      pip install -vvv Metron
+      pip install -vvv etalon
       ```
 - type: markdown
   attributes:

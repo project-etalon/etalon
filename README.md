@@ -1,9 +1,9 @@
-<p align="center">
+<!-- <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/_static/logo/dark.png">
     <img alt="vLLM" src="docs/_static/logo/light.png" width=50%>
   </picture>
-</p>
+</p> -->
 
 <h3 align="center">
 Tool to benchmark LLM Inference Systems

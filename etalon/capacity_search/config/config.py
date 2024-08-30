@@ -119,54 +119,54 @@ class RequestGeneratorConfig:
             "seed": self.seed,
         }
         if self.request_interval_generator_provider == "gamma":
-            config_dict[
-                "gamma-request-interval-generator-cv"
-            ] = self.gamma_request_interval_generator_cv
+            config_dict["gamma-request-interval-generator-cv"] = (
+                self.gamma_request_interval_generator_cv
+            )
         elif self.request_interval_generator_provider == "trace":
-            config_dict[
-                "trace-request-interval-generator-trace-file"
-            ] = self.trace_request_interval_generator_trace_file
-            config_dict[
-                "trace-request-interval-generator-start-time"
-            ] = self.trace_request_interval_generator_start_time
-            config_dict[
-                "trace-request-interval-generator-end-time"
-            ] = self.trace_request_interval_generator_end_time
-            config_dict[
-                "trace-request-interval-generator-time-scale-factor"
-            ] = self.trace_request_interval_generator_time_scale_factor
+            config_dict["trace-request-interval-generator-trace-file"] = (
+                self.trace_request_interval_generator_trace_file
+            )
+            config_dict["trace-request-interval-generator-start-time"] = (
+                self.trace_request_interval_generator_start_time
+            )
+            config_dict["trace-request-interval-generator-end-time"] = (
+                self.trace_request_interval_generator_end_time
+            )
+            config_dict["trace-request-interval-generator-time-scale-factor"] = (
+                self.trace_request_interval_generator_time_scale_factor
+            )
 
         if self.request_length_generator_provider == "trace":
-            config_dict[
-                "trace-request-length-generator-trace-file"
-            ] = self.trace_request_length_generator_trace_file
-            config_dict[
-                "trace-request-length-generator-prefill-scale-factor"
-            ] = self.trace_request_length_generator_prefill_scale_factor
-            config_dict[
-                "trace-request-length-generator-decode-scale-factor"
-            ] = self.trace_request_length_generator_decode_scale_factor
+            config_dict["trace-request-length-generator-trace-file"] = (
+                self.trace_request_length_generator_trace_file
+            )
+            config_dict["trace-request-length-generator-prefill-scale-factor"] = (
+                self.trace_request_length_generator_prefill_scale_factor
+            )
+            config_dict["trace-request-length-generator-decode-scale-factor"] = (
+                self.trace_request_length_generator_decode_scale_factor
+            )
         elif self.request_length_generator_provider == "fixed":
-            config_dict[
-                "fixed-request-generator-prefill-tokens"
-            ] = self.fixed_request_generator_prefill_tokens
-            config_dict[
-                "fixed-request-generator-decode-tokens"
-            ] = self.fixed_request_generator_decode_tokens
+            config_dict["fixed-request-generator-prefill-tokens"] = (
+                self.fixed_request_generator_prefill_tokens
+            )
+            config_dict["fixed-request-generator-decode-tokens"] = (
+                self.fixed_request_generator_decode_tokens
+            )
         elif self.request_length_generator_provider == "synthetic":
-            config_dict[
-                "synthetic-request-generator-min-tokens"
-            ] = self.synthetic_request_generator_min_tokens
-            config_dict[
-                "synthetic-request-generator-prefill-to-decode-ratio"
-            ] = self.synthetic_request_generator_prefill_to_decode_ratio
+            config_dict["synthetic-request-generator-min-tokens"] = (
+                self.synthetic_request_generator_min_tokens
+            )
+            config_dict["synthetic-request-generator-prefill-to-decode-ratio"] = (
+                self.synthetic_request_generator_prefill_to_decode_ratio
+            )
         elif self.request_length_generator_provider == "zipf":
-            config_dict[
-                "zipf-request-length-generator-theta"
-            ] = self.zipf_request_length_generator_theta
-            config_dict[
-                "zipf-request-length-generator-scramble"
-            ] = self.zipf_request_length_generator_scramble
+            config_dict["zipf-request-length-generator-theta"] = (
+                self.zipf_request_length_generator_theta
+            )
+            config_dict["zipf-request-length-generator-scramble"] = (
+                self.zipf_request_length_generator_scramble
+            )
         return config_dict
 
     def to_args(self):

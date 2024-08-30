@@ -9,9 +9,10 @@ from etalon.metrics.request_metrics import RequestMetrics
 class BaseLLMClient:
     """A client for making requests to a LLM API e.g Anyscale Endpoints."""
 
-    def __init__(self, model_name: str) -> None:
+    def __init__(self, model_name: str, tokenizer_name: str) -> None:
+        self.model_name = model_name
         self.tokenizer = get_tokenizer(
-            model_name,
+            tokenizer_name,
             trust_remote_code=True,
         )
 

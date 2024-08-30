@@ -15,7 +15,12 @@ class AsyncRequestsManager:
     """Manages requests for single LLM API client."""
 
     def __init__(
-        self, client_id: int, model: str, llm_api: str, max_concurrent_requests: int
+        self,
+        client_id: int,
+        model: str,
+        tokenizer_name: str,
+        llm_api: str,
+        max_concurrent_requests: int,
     ):
         self.max_concurrent_requests = max_concurrent_requests
         self.requests_queue = asyncio.Queue(maxsize=max_concurrent_requests)
@@ -23,6 +28,7 @@ class AsyncRequestsManager:
         # just create a single client per manager
         self.llm_client = construct_clients(
             model_name=model,
+            tokenizer_name=tokenizer_name,
             llm_api=llm_api,
             num_clients=1,
             use_ray=False,

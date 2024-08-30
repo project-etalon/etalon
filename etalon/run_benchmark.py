@@ -305,7 +305,10 @@ def parse_args():
         "--model", type=str, required=True, help="The model to use for this load test."
     )
     args.add_argument(
-        "--tokenizer", type=str, required=False, help="The tokenizer to use for this load test. By default, the tokenizer is inferred from the model."
+        "--tokenizer",
+        type=str,
+        required=False,
+        help="The tokenizer to use for this load test. By default, the tokenizer is inferred from the model.",
     )
     args.add_argument(
         "--num-ray-clients",

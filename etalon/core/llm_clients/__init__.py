@@ -10,7 +10,11 @@ SUPPORTED_APIS = ["openai", "anthropic", "litellm"]
 
 
 def construct_clients(
-    model_name: str, tokenizer_name: str, llm_api: str, num_clients: int, use_ray: bool = True
+    model_name: str,
+    tokenizer_name: str,
+    llm_api: str,
+    num_clients: int,
+    use_ray: bool = True,
 ) -> List[BaseLLMClient]:
     """Construct LLMClients that will be used to make requests to the LLM API.
 

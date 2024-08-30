@@ -9,20 +9,20 @@ Clone Repository
 
 .. code-block:: shell
 
-    git clone https://github.com/project-metron/metron.git
+    git clone https://github.com/project-etalon/etalon.git
 
 Create Conda Environment
 ~~~~~~~~~~~~~~~~~~~~~~~~
 .. code-block:: shell
 
-    conda create -n metron python=3.10
-    conda activate metron
+    conda create -n etalon python=3.10
+    conda activate etalon
 
-Install metron
+Install etalon
 ~~~~~~~~~~~~~~~
 .. code-block:: shell
 
-    cd metron
+    cd etalon
     pip install -e .
 
 Optional Dependencies

@@ -1,6 +1,6 @@
 Proprietary Systems
 ===================
-``metron`` can benchmark the performance of LLM Inference Systems that are exposed as public APIs. The following sections describe how to benchmark these systems.
+``etalon`` can benchmark the performance of LLM Inference Systems that are exposed as public APIs. The following sections describe how to benchmark these systems.
 
 .. note::
 
@@ -18,7 +18,7 @@ Running Benchmark
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark \
+    python -m etalon.run_benchmark \
     --model "meta-llama/Meta-Llama-3-8B-Instruct" \
     --max-num-completed-requests 20 \
     --request-interval-generator-provider "gamma" \
@@ -30,7 +30,7 @@ Be sure to update ``--model`` flag to the model used in the proprietary system.
 
 .. note::
 
-    ``metron`` supports different generator providers for request interval and request length. For more details, refer to :doc:`../guides/request_generator_providers`.
+    ``etalon`` supports different generator providers for request interval and request length. For more details, refer to :doc:`../guides/request_generator_providers`.
 
 .. _wandb_args_proprietary_systems:
 
@@ -53,4 +53,4 @@ There are many more arguments for running benchmark, run the following to know m
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark -h
+    python -m etalon.run_benchmark -h

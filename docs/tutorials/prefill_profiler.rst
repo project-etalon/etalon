@@ -1,7 +1,7 @@
 Prefill Profiler
 ================
 
-To profile prefill times of open source systems and create a prefill time predictor for a given model and open source system combination, based on input prompt length, we can run ``metron.prefill_profiler``.
+To profile prefill times of open source systems and create a prefill time predictor for a given model and open source system combination, based on input prompt length, we can run ``etalon.prefill_profiler``.
 
 .. image:: ../_static/assets/yi-prefill-time-curve.png
     :align: center
@@ -15,7 +15,7 @@ And, then run the following command:
 
 .. code-block:: shell
 
-    python -m metron.prefill_profiler \
+    python -m etalon.prefill_profiler \
     --model "meta-llama/Meta-Llama-3-8B-Instruct" \
     --timeout 600 \
     --fixed-request-generator-decode-tokens 16 \
@@ -34,7 +34,7 @@ To profile a custom range of prompt lengths, use the flag ``--prefill-lengths`` 
 
 .. code-block:: shell
 
-    python -m metron.prefill_profiler \
+    python -m etalon.prefill_profiler \
     --model "meta-llama/Meta-Llama-3-8B-Instruct" \
     --timeout 600 \
     --fixed-request-generator-decode-tokens 16 \

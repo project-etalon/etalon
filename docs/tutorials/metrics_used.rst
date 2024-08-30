@@ -1,7 +1,7 @@
-Metrics used by metron
+Metrics used by etalon
 ======================
 
-``metron`` supports 4 conventional metrics: TTFT, TBT, TPOT and Normalized Latency. 
+``etalon`` supports 4 conventional metrics: TTFT, TBT, TPOT and Normalized Latency. 
 
 Additionally, it introduces two new metrics, *fluidity-index* and *fluid-token-generation-rate*, to evaluate LLM inference systems.
 
@@ -34,7 +34,7 @@ It is defined as total execution time of request divided by the number of output
 
 .. note::
 
-    *fluidity-index* is a new metric introduced by ``metron`` to evaluate LLM inference systems. It is designed to capture the nuances of LLM inference process and its impact on real-time user experience.
+    *fluidity-index* is a new metric introduced by ``etalon`` to evaluate LLM inference systems. It is designed to capture the nuances of LLM inference process and its impact on real-time user experience.
 
 
 Given target prefill and decode latencies, *fluidity-index* is defined as fraction of tokens that satisfy the target latencies for a given request. It accounts for slack which is the difference between actual time taken to generate token and deadline for that token. That slack is used by subsequent tokens if current token is generated before deadline. Higher *fluidity-index* is better.
@@ -58,7 +58,7 @@ The *fluidity-index* is calculated as follows:
 
 .. note::
 
-    *fluid token generation rate* is a another new metric introduced by ``metron`` to evaluate LLM inference systems.
+    *fluid token generation rate* is a another new metric introduced by ``etalon`` to evaluate LLM inference systems.
 
 *fluid token generation rate* is defined as maximum tokens per second an inference system can serve such that 99% of the requests achieve fluidity-index of at-least 0.9. Higher *fluid token generation rate* is better.
 

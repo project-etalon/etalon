@@ -6,9 +6,9 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "metron"
+project = "etalon"
 copyright = "2024-onwards Systems for AI Lab, Georgia Institute of Technology"
-author = "Metron Team"
+author = "etalon Team"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -29,12 +29,12 @@ html_theme = "furo"
 html_static_path = ["_static"]
 
 # -- Added configurations ----------------------------------------------------
-html_title = "metron"
+html_title = "etalon"
 
 html_context = {
     "display_github": True, # Integrate GitHub
-    "github_user": "project-metron", # Username
-    "github_repo": "metron", # Repo name
+    "github_user": "project-etalon", # Username
+    "github_repo": "etalon", # Repo name
     "github_version": "main", # Version
     "conf_py_path": "/docs/", # Path in the checkout to the docs root
 }

@@ -1,7 +1,7 @@
 Interval Generators
 ===================
 
-Interval generators determine the time interval between consecutive requests. The following interval generators are available in ``metron``:
+Interval generators determine the time interval between consecutive requests. The following interval generators are available in ``etalon``:
 
 Poisson Interval Generator
 --------------------------
@@ -10,7 +10,7 @@ The Poisson interval generator generates intervals between requests according to
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark
+    python -m etalon.run_benchmark
         # other arguments
         ... \
         --request-interval-generator-provider "poisson" \
@@ -26,7 +26,7 @@ The Gamma interval generator generates intervals between requests according to a
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark
+    python -m etalon.run_benchmark
         # other arguments
         ... \
         --request-interval-generator-provider "gamma" \
@@ -43,7 +43,7 @@ The static interval generator generates no interval between requests, i.e., each
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark
+    python -m etalon.run_benchmark
         # other arguments
         ... \
         request-interval-generator-provider "static"
@@ -55,7 +55,7 @@ The trace interval generator generates intervals between requests based on a tra
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark
+    python -m etalon.run_benchmark
         # other arguments
         ... \
         request-interval-generator-provider "trace" \
@@ -72,7 +72,7 @@ Sometimes proprietary APIs may block requests if they are made too frequently. T
 
 .. code-block:: shell
 
-    python -m metron.run_benchmark
+    python -m etalon.run_benchmark
         # other arguments
         ... \
         --request-every-minute

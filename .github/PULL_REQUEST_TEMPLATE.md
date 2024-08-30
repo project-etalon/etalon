@@ -10,7 +10,7 @@ FIX #xxxx (*link existing issues this PR will resolve*)
 <!-- inside this <details> section, markdown rendering does not work, so we use raw html here. -->
 <summary><b> PR Checklist (Click to Expand) </b></summary>
 
-<p>Thank you for your contribution to Metron! Before submitting the pull request, please ensure the PR meets the following criteria. This helps Metron maintain the code quality and improve the efficiency of the review process.</p>
+<p>Thank you for your contribution to etalon! Before submitting the pull request, please ensure the PR meets the following criteria. This helps etalon maintain the code quality and improve the efficiency of the review process.</p>
 
 <h3>PR Title and Classification</h3>
 <p>Only specific types of PRs will be reviewed. The PR title is prefixed appropriately to indicate the type of change. Please use one of the following:</p>
@@ -32,7 +32,7 @@ FIX #xxxx (*link existing issues this PR will resolve*)
 <ul>
     <li>Pass all linter checks. Please use <code>make format</code></a> to format your code.</li>
     <li>The code need to be well-documented to ensure future contributors can easily understand the code.</li>
-    <li>Please add documentation to <code>docs/source/</code> if the PR modifies the user-facing behaviors of Metron. It helps user understand and utilize the new features or changes.</li>
+    <li>Please add documentation to <code>docs/source/</code> if the PR modifies the user-facing behaviors of etalon. It helps user understand and utilize the new features or changes.</li>
 </ul>
 
 <h3>Notes for Large Changes</h3>
@@ -40,7 +40,7 @@ FIX #xxxx (*link existing issues this PR will resolve*)
 
 <h3>Thank You</h3>
 
-<p> Finally, thank you for taking the time to read these guidelines and for your interest in contributing to Metron. Your contributions make Metron a great tool for everyone! </p>
+<p> Finally, thank you for taking the time to read these guidelines and for your interest in contributing to etalon. Your contributions make etalon a great tool for everyone! </p>
 
 
 </details>

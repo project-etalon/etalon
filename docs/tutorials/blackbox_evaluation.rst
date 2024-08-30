@@ -1,9 +1,9 @@
 Black-box Evaluation
 ====================
 
-``metron`` performs black-box evaluation of both proprietary and open-source systems.
+``etalon`` performs black-box evaluation of both proprietary and open-source systems.
 
-Check out the following resources to learn how to run ``metron`` with both proprietary and open-source systems:
+Check out the following resources to learn how to run ``etalon`` with both proprietary and open-source systems:
 
 .. toctree::
     :maxdepth: 2
@@ -11,7 +11,7 @@ Check out the following resources to learn how to run ``metron`` with both propr
     public_apis
     open_source_systems
 
-Following figures show evaluations by ``metron``:
+Following figures show evaluations by ``etalon``:
 
 .. _token_rate_comparison_api:
 
@@ -21,7 +21,7 @@ Following figures show evaluations by ``metron``:
     
     **Token Rate Comparison**
 
-Above figure depicts throughput measured by ``metron`` for different systems based on three different metrics:
+Above figure depicts throughput measured by ``etalon`` for different systems based on three different metrics:
 
 * TPOT
 * TBT

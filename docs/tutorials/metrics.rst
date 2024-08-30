@@ -1,9 +1,9 @@
 Metrics
 =======
 
-``metron`` provides a set of metrics to evaluate the performance of LLM inference systems. These metrics are designed to capture the nuances of LLM inference process and its impact on real-time user experience.
+``etalon`` provides a set of metrics to evaluate the performance of LLM inference systems. These metrics are designed to capture the nuances of LLM inference process and its impact on real-time user experience.
 
-``metron`` also enables visualizing these metrics to understand and compare the performance across different LLM inference systems.
+``etalon`` also enables visualizing these metrics to understand and compare the performance across different LLM inference systems.
 
 Check the following resources to learn more:
 

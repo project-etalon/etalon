@@ -8,7 +8,7 @@ Capacity Evaluation
     prefill_profiler
     capacity_search
 
-``metron`` provides a tool through capacity search to find the maximum Queries per Second (QPS) that a given model and inference system can handle given various constraints.
+``etalon`` provides a tool through capacity search to find the maximum Queries per Second (QPS) that a given model and inference system can handle given various constraints.
 
 What is Capacity?
 -----------------
@@ -20,13 +20,13 @@ Steps to Measure Capacity
 
 Prefill Profiler
 ~~~~~~~~~~~~~~~~
-First ``metron`` needs to profile the prefill times of the given open source system and model combination. 
+First ``etalon`` needs to profile the prefill times of the given open source system and model combination. 
 
 Refer to :doc:`prefill_profiler` for more details on how to run prefill profiler.
 
 
 Capacity Search
 ~~~~~~~~~~~~~~~
-``metron`` then runs capacity search to find the maximum QPS.
+``etalon`` then runs capacity search to find the maximum QPS.
 
 Refer to :doc:`capacity_search` for more details on how to run capacity search.

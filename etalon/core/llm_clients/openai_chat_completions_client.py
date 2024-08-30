@@ -19,8 +19,8 @@ MAX_RESPONSES_ALLOWED_TO_STORE = 5
 class OpenAIChatCompletionsClient(BaseLLMClient):
     """Client for OpenAI Chat Completions API."""
 
-    def __init__(self, model_name: str) -> None:
-        super().__init__(model_name)
+    def __init__(self, model_name: str, tokenizer_name: str) -> None:
+        super().__init__(model_name, tokenizer_name)
         self.client = httpx.AsyncClient()
 
     def total_tokens(self, response_list: List[str]) -> int:

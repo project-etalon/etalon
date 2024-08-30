@@ -81,6 +81,7 @@ class PrefillProfiler:
             os.makedirs(run_dir, exist_ok=True)
             run_benchmark(
                 model=self.args.model,
+                tokenizer_name=self.args.tokenizer,
                 output_dir=run_dir,
                 additional_sampling_params=self.args.additional_sampling_params,
                 num_ray_clients=PREFILL_NUM_RAY_CLIENTS,

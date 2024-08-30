@@ -13,6 +13,7 @@ class RequestsLauncher:
     def __init__(
         self,
         model: str,
+        tokenizer_name: str,
         llm_api: str,
         num_ray_clients: int,
         num_concurrent_requests_per_client: int,
@@ -23,6 +24,7 @@ class RequestsLauncher:
                 AsyncRequestsManager.remote(
                     client_id=client_id,
                     model=model,
+                    tokenizer_name=tokenizer_name,
                     llm_api=llm_api,
                     max_concurrent_requests=num_concurrent_requests_per_client,
                 )

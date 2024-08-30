@@ -33,6 +33,7 @@ class ServerConfig:
 class ModelConfig:
     name: str
     identifier: str
+    tokenizer: str = None
     parallel_specs: List[str] = field(default_factory=list)
     traces: List[str] = field(default_factory=list)
 
@@ -40,13 +41,16 @@ class ModelConfig:
         return f"{self.name}"
 
     def get_human_readable_name(self):
-        return f"Model: {self.name}"
+        return f"Model: {self.name}, Tokenizer: {self.tokenizer}"
 
     def to_config_dict(self):
-        return {"model_name": self.identifier}
+        return {"model_name": self.identifier, "tokenizer_name": self.tokenizer}
 
     def to_args(self):
-        return f"--model {self.identifier}"
+        command = f"--model {self.identifier}"
+        if self.tokenizer:
+            command += f" --tokenizer {self.tokenizer}"
+        return command
 
     def is_parallel_spec_valid(self, spec_name: str) -> bool:
         return not self.parallel_specs or spec_name in self.parallel_specs
@@ -311,10 +315,6 @@ class JobConfig:
                     model_config.name == "gpt-3.5-turbo"
                     and server_config.openai_server_engine
                     in ["vllm", "lightllm", "fastertransformers", "sarathi-serve"]
-                )
-                or (
-                    model_config.name != "gpt-3.5-turbo"
-                    and server_config.openai_server_engine == "default"
                 )
                 or (
                     request_generator_config.trace_file_name == "sharegpt"

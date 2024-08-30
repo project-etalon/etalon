@@ -107,6 +107,7 @@ async def collect_results(
 
 async def run_main_loop(
     model: str,
+    tokenizer_name: str,
     llm_api: str,
     tokenizer: Any,
     additional_sampling_params: Optional[Dict[str, Any]] = None,
@@ -123,6 +124,7 @@ async def run_main_loop(
 ):
     req_launcher = RequestsLauncher(
         model=model,
+        tokenizer_name=tokenizer_name,
         llm_api=llm_api,
         num_ray_clients=num_ray_clients,
         num_concurrent_requests_per_client=num_concurrent_requests_per_client,
@@ -185,6 +187,7 @@ async def run_main_loop(
 
 def run_benchmark(
     model: str,
+    tokenizer_name: str,
     output_dir: str,
     additional_sampling_params: Optional[Dict[str, Any]] = None,
     num_ray_clients: int = 2,
@@ -239,7 +242,7 @@ def run_benchmark(
     )
 
     tokenizer = get_tokenizer(
-        model,
+        tokenizer_name=tokenizer_name,
         trust_remote_code=True,
     )
 
@@ -265,6 +268,7 @@ def run_benchmark(
     asyncio.run(
         run_main_loop(
             model=model,
+            tokenizer_name=tokenizer_name,
             llm_api=llm_api,
             tokenizer=tokenizer,
             additional_sampling_params=additional_sampling_params,
@@ -299,6 +303,9 @@ def parse_args():
 
     args.add_argument(
         "--model", type=str, required=True, help="The model to use for this load test."
+    )
+    args.add_argument(
+        "--tokenizer", type=str, required=False, help="The tokenizer to use for this load test. By default, the tokenizer is inferred from the model."
     )
     args.add_argument(
         "--num-ray-clients",
@@ -591,6 +598,9 @@ def parse_args():
 
     args = args.parse_args()
 
+    if args.tokenizer is None:
+        args.tokenizer = args.model
+
     if not args.should_use_given_dir:
         benchmark_identifier = f"{args.model}_{args.request_interval_generator_provider}_{args.request_length_generator_provider}"
         benchmark_identifier = re.sub(r"[^\w\d-]+", "-", benchmark_identifier)
@@ -629,6 +639,7 @@ if __name__ == "__main__":
         llm_api=args.llm_api,
         output_dir=args.output_dir,
         model=args.model,
+        tokenizer_name=args.tokenizer,
         timeout=args.timeout,
         max_num_completed_requests=args.max_num_completed_requests,
         num_ray_clients=args.num_ray_clients,

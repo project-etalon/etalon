@@ -26,7 +26,7 @@ def get_tokenizer(
         )
     except TypeError as e:
         # The LLaMA tokenizer causes a protobuf error in some environments.
-        err_msg = "Failed to load the tokenizer."
+        err_msg = "Failed to load the tokenizer. If model name is correct, consider setting --tokenizer CLI arg to equivalent model on HuggingFace."
         raise RuntimeError(err_msg) from e
     except ValueError as e:
         # If the error pertains to the tokenizer class not existing or not

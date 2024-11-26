@@ -92,6 +92,7 @@ class PrefillProfiler:
                 request_generator_config=request_generator_config,
                 should_write_metrics=False,
                 wandb_project=self.args.wandb_project,
+                wandb_entity=self.args.wandb_entity,
                 wandb_group=self.args.wandb_group,
                 wandb_run_name=f"prefill_p{prefill_value}_{self.args.model}",
             )

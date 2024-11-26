@@ -15,6 +15,7 @@ class ServiceMetrics:
         target_deadline_miss_rate: float = 0.1,
         should_write_metrics: bool = True,
         wandb_project: str = None,
+        wandb_entity: str = None,
         wandb_group: str = None,
         wandb_run_name: str = None,
     ) -> None:
@@ -31,6 +32,7 @@ class ServiceMetrics:
             target_deadline_miss_rate=target_deadline_miss_rate,
             should_write_metrics=should_write_metrics,
             wandb_project=wandb_project,
+            wandb_entity=wandb_entity,
             wandb_group=wandb_group,
             wandb_run_name=wandb_run_name,
         )

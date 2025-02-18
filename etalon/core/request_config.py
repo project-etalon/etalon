@@ -22,3 +22,6 @@ class RequestConfig(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
     address_append_value: Optional[str] = None
     id: Optional[int] = None
+
+    def __str__(self) -> str:
+        return f"RequestConfig(id={self.id})"

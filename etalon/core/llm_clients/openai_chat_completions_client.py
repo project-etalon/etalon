@@ -1,9 +1,8 @@
 import json
 import os
 import time
+import requests
 from typing import List, Tuple
-
-import httpx
 
 from etalon.core.llm_clients.base_llm_client import BaseLLMClient
 from etalon.core.request_config import RequestConfig
@@ -21,7 +20,19 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
 
     def __init__(self, model_name: str, tokenizer_name: str) -> None:
         super().__init__(model_name, tokenizer_name)
-        self.client = httpx.AsyncClient()
+        self.address = os.environ.get("OPENAI_API_BASE")
+        if not self.address:
+            self.address = "http://localhost:8000/v1"
+            logger.warning(
+                "Warning: OPENAI_API_BASE environment variable not set. Defaulting to localhost."
+            )
+            self.key = os.environ.get("OPENAI_API_KEY")
+            if not self.key:
+                self.key = ""
+                logger.warning(
+                    "Warning: OPENAI_API_KEY environment variable not set. Defaulting to empty string."
+                )
+            self.start_time = time.monotonic()
 
     def total_tokens(self, response_list: List[str]) -> int:
         merged_content = "".join(response_list)
@@ -42,11 +53,7 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         previous_token_count = self.total_tokens(previous_responses)
         return current_tokens_received, previous_token_count
 
-    async def close_client(self):
-        # Close the client
-        await self.client.aclose()
-
-    async def send_llm_request(
+    def send_llm_request(
         self, request_config: RequestConfig
     ) -> Tuple[RequestMetrics, str]:
         prompt = request_config.prompt
@@ -64,13 +71,9 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         sampling_params = request_config.sampling_params
         body.update(sampling_params or {})
 
-        address = os.environ.get("OPENAI_API_BASE")
-        if not address:
-            raise ValueError("the environment variable OPENAI_API_BASE must be set.")
-        key = os.environ.get("OPENAI_API_KEY")
-        if not key:
-            raise ValueError("the environment variable OPENAI_API_KEY must be set.")
-        headers = {"Authorization": f"Bearer {key}"}
+        headers = {"Authorization": f"Bearer {self.key}"}
+        address = self.address
+
         if not address:
             raise ValueError("No host provided.")
         if not address.endswith("/"):
@@ -86,21 +89,19 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
         previous_token_count = 0
 
         most_recent_received_token_time = time.monotonic()
+        request_dispatched_at = time.monotonic() - self.start_time
 
         try:
-            async with self.client.stream(
-                "POST", address, json=body, timeout=None, headers=headers
+            with requests.post(
+                address, json=body, timeout=None, headers=headers, stream=True
             ) as response:
                 if response.status_code != 200:
                     error_response_code = response.status_code
-                    error_content = []
-                    async for error_line in response.aiter_lines():
-                        error_content.append(error_line)
-                    error_msg = "".join(error_content)
+                    error_msg = response.text
                     logger.error(f"Request Error: {error_msg}")
                     response.raise_for_status()
 
-                async for chunk in response.aiter_lines():
+                for chunk in response.iter_lines(chunk_size=None):
                     chunk = chunk.strip()
 
                     if not chunk:
@@ -146,6 +147,7 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
             logger.error(f"Warning Or Error: ({error_response_code}) {e}")
 
         metrics = RequestMetrics(
+            request_dispatched_at=request_dispatched_at,
             inter_token_times=inter_token_times,
             num_prompt_tokens=prompt_len,
             num_output_tokens=tokens_received,

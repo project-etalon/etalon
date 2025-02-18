@@ -25,8 +25,9 @@ PREFILL_RANDOM_FOREST_PARAMS = {
     "n_estimators": 10,
     "random_state": 0,
 }
-# Request length generator provider for prefill profiling
+# Request length/interval generator provider for prefill profiling
 PREFILL_REQUEST_LENGTH_GENERATOR_PROVIDER = "fixed"
+PREFILL_REQUEST_INTERVAL_GENERATOR_PROVIDER = "static"
 # Polynomial degree for the prefill time predictor
 PREFILL_POLYNOMIAL_DEGREE = 2
 # RMSE threshold for the prefill time predictor
@@ -68,6 +69,9 @@ class PrefillProfiler:
 
     def run(self):
         request_generator_config = RequestGeneratorConfig(self.args)
+        request_generator_config.request_interval_generator_provider = (
+            PREFILL_REQUEST_INTERVAL_GENERATOR_PROVIDER
+        )
         request_generator_config.request_length_generator_provider = (
             PREFILL_REQUEST_LENGTH_GENERATOR_PROVIDER
         )
@@ -78,26 +82,33 @@ class PrefillProfiler:
             run_dir = os.path.join(
                 self.args.output_dir, f"{self.args.model}_{prefill_value}"
             )
-            os.makedirs(run_dir, exist_ok=True)
-            run_benchmark(
-                model=self.args.model,
-                tokenizer_name=self.args.tokenizer,
-                output_dir=run_dir,
-                additional_sampling_params=self.args.additional_sampling_params,
-                num_ray_clients=PREFILL_NUM_RAY_CLIENTS,
-                num_concurrent_requests_per_client=PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT,
-                max_num_completed_requests=PREFILL_MAX_NUM_COMPLETED_REQUESTS,
-                timeout=self.args.timeout,
-                llm_api=self.args.llm_api,
-                request_generator_config=request_generator_config,
-                should_write_metrics=False,
-                wandb_project=self.args.wandb_project,
-                wandb_group=self.args.wandb_group,
-                wandb_run_name=f"prefill_p{prefill_value}_{self.args.model}",
-            )
-            if wandb.run:
-                wandb.finish()
+            if os.path.isdir(run_dir):
+                logger.info(f"Skipping profiling for prefill value = {prefill_value}...")
+            else:
+                os.makedirs(run_dir, exist_ok=True)
+                logger.info(f"Running profiling for prefill value = {prefill_value}...")
+                run_benchmark(
+                    model=self.args.model,
+                    tokenizer_name=self.args.tokenizer,
+                    output_dir=run_dir,
+                    additional_sampling_params=self.args.additional_sampling_params,
+                    num_ray_clients=PREFILL_NUM_RAY_CLIENTS,
+                    num_concurrent_requests_per_client=PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT,
+                    max_num_completed_requests=PREFILL_MAX_NUM_COMPLETED_REQUESTS,
+                    timeout=self.args.timeout,
+                    llm_api=self.args.llm_api,
+                    request_generator_config=request_generator_config,
+                    should_write_metrics=False,
+                    wandb_project=self.args.wandb_project,
+                    wandb_group=self.args.wandb_group,
+                    wandb_run_name=f"prefill_p{prefill_value}_{self.args.model}",
+                )
+                logger.info(f"Run benchmark done")
+                if wandb.run:
+                    wandb.finish()
 
+            logger.info(f"Profiling for prefill value = {prefill_value} done")
+            logger.info(f"Analyzing the results for prefill value = {prefill_value}...")
             json_file = self._get_result_file(run_dir)
             if json_file is not None:
                 with open(json_file, "r") as f:
@@ -113,6 +124,10 @@ class PrefillProfiler:
                         """
                     )
                     self.prefill_times.append(min(ttft))
+            else:
+                logger.error(f"Could not find the result file {json_file} for {run_dir}")
+                exit()
+            logger.info(f"Going to the next prefill value")
 
         transformed_prefill_values = self.transformer.fit_transform(
             np.array(self.prefill_values).reshape(-1, 1)

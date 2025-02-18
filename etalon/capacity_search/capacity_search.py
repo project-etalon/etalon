@@ -6,18 +6,13 @@ from typing import Tuple
 
 import joblib
 import numpy as np
-import ray
 import wandb
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import PolynomialFeatures
 
 from etalon.capacity_search.benchmark_wrapper import run
 from etalon.capacity_search.config.config import BenchmarkConfig, JobConfig, _get_hash
-from etalon.capacity_search.ray_utils import (
-    ReplicaResourceMapping,
-    ResourceManager,
-    get_ip,
-)
+from etalon.capacity_search.ray_utils import get_ip
 from etalon.logger import init_logger
 from etalon.metrics.metric_utils import get_request_level_deadline_miss_rate
 from etalon.prefill_profiler import PREFILL_POLYNOMIAL_DEGREE
@@ -48,18 +43,14 @@ class CapacitySearch:
         self,
         job_config: JobConfig,
         args: argparse.Namespace,
-        resource_manager: ResourceManager,
-        resource_mapping: ReplicaResourceMapping,
     ) -> None:
         self.node_ip = get_ip()
         self.job_config = job_config
         self.args = args
-        self.resource_manager = resource_manager
-        self.resource_mapping = resource_mapping
         self.prefill_model = None
         self.transformer = None
 
-        if self.args.slo_type == "deadline":
+        if self.args.slo_type == "deadline" and self.args.profile_dir is not None:
             prefill_model_path = os.path.join(
                 self.args.profile_dir, f"prefill_predictor.pkl"
             )
@@ -69,13 +60,10 @@ class CapacitySearch:
             )
 
     def release_resources(self):
-        if not self.resource_mapping:
-            return
-
-        ray.get(self.resource_manager.release_resources.remote(self.resource_mapping))
+        pass
 
     def _run_benchmark(self, benchmark_config: BenchmarkConfig):
-        run(self.job_config, benchmark_config, self.resource_mapping)
+        run(self.job_config, benchmark_config)
 
     def _get_result_file(self, run_dir: str, metric_name: str) -> str:
         files = glob.glob(os.path.join(run_dir, f"{metric_name}.csv"))
@@ -109,12 +97,17 @@ class CapacitySearch:
         tbt_array = request_level_metrics["tbt"]
 
         # Get prompt tokens and calculate TTFT deadlines (prefill time + ttft_slack_slo)
-        prompt_tokens_array = request_level_metrics["num_prompt_tokens"]
-        prompt_tokens_array = self.transformer.fit_transform(
-            np.array(prompt_tokens_array).reshape(-1, 1)
-        ).tolist()
-        ttft_deadlines = self.prefill_model.predict(prompt_tokens_array).tolist()
-        ttft_deadlines = [i + self.args.ttft_slack_slo for i in ttft_deadlines]
+        if self.args.profile_dir is not None:
+            logger.info("Using dynamic TTFT deadlines (using predictor) with deadline based SLO")
+            prompt_tokens_array = request_level_metrics["num_prompt_tokens"]
+            prompt_tokens_array = self.transformer.fit_transform(
+                np.array(prompt_tokens_array).reshape(-1, 1)
+            ).tolist()
+            ttft_deadlines = self.prefill_model.predict(prompt_tokens_array).tolist()
+            ttft_deadlines = [i + self.args.ttft_slack_slo for i in ttft_deadlines]
+        else:
+            logger.info("Using constant TTFT deadlines with deadline based SLO")
+            ttft_deadlines = [self.args.ttft_slo] * len(ttft_array)
 
         # Create inter-token times array for each request (TTFT + TBT) to calculate deadline miss rate
         tbt_deadlines = [self.args.tbt_slo] * len(ttft_array)
@@ -253,6 +246,7 @@ class CapacitySearch:
         cached_request_level_metrics_file = self._get_request_level_metrics(run_dir)
 
         if cached_request_level_metrics_file is not None:
+            logger.info(f"Cached results found for {qps}")
             return self._is_under_sla(
                 cached_request_level_metrics_file, benchmark_config
             )

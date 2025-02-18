@@ -12,7 +12,7 @@ from etalon.logger import init_logger
 logger = init_logger(__name__)
 
 
-def get_args():
+def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--min-search-granularity",
@@ -65,6 +65,13 @@ def get_args():
         default=False,
     )
 
+    return parser
+
+
+def setup():
+    """Setup function to parse the arguments and setup the config."""
+
+    parser = get_parser()
     args = parser.parse_args()
 
     if args.wandb_project and args.enable_wandb_sweep:
@@ -72,19 +79,11 @@ def get_args():
             args.wandb_sweep_name or args.wandb_sweep_id
         ), "wandb-sweep-name/id is required with wandb-project"
 
-    return args
-
-
-if __name__ == "__main__":
-    args = get_args()
-
     config = yaml.safe_load(open(args.config_path))
 
     assert args.deadline_miss_rate_slo >= 0 and args.deadline_miss_rate_slo <= 1
 
     os.makedirs(args.output_dir, exist_ok=True)
-
-    logger.info("Starting capacity search")
 
     # merge the config with the args
     config.update(vars(args))
@@ -101,13 +100,19 @@ if __name__ == "__main__":
         args.wandb_sweep_id = sweep_id
         # required so that wandb doesn't delay flush of child logs
         wandb.finish(quiet=True)
+    
+    return args, config
 
+
+def run():
+    logger.info("Starting capacity search")
+    args, config = setup()
     search_manager = SearchManager(args, config)
-
     start_time = time.time()
-
     all_results = search_manager.run()
-
     end_time = time.time()
-
     logger.info(f"Benchmarking took time: {end_time - start_time}")
+
+
+if __name__ == "__main__":
+    run()

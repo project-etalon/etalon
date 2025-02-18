@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from tqdm import tqdm
 
+from etalon.config import BenchmarkConfig
 from etalon.core.hf_utils import get_tokenizer
 from etalon.core.llm_clients import SUPPORTED_APIS
 from etalon.core.request_config import RequestConfig
@@ -153,18 +154,7 @@ def process_results(
 
 
 def run_main_loop(
-    model: str,
-    tokenizer_name: str,
-    llm_api: str,
-    tokenizer: Any,
-    additional_sampling_params: Optional[Dict[str, Any]] = None,
-    requests_interval_generator: Optional[BaseRequestIntervalGenerator] = None,
-    requests_length_generator: Optional[BaseRequestLengthGenerator] = None,
-    corpus_lines: List[str] = None,
-    address_append_value: Optional[str] = None,
-    service_metrics: ServiceMetrics = None,
-    num_clients: int = 2,
-    num_concurrent_requests_per_client: int = 5,
+    benchmark_config: BenchmarkConfig,
     generated_texts: List[str] = None,
     pbar: tqdm = None,
 ):
@@ -242,24 +232,7 @@ def run_main_loop(
 
 
 def run_benchmark(
-    model: str,
-    tokenizer_name: str,
-    output_dir: str,
-    additional_sampling_params: Optional[Dict[str, Any]] = None,
-    num_clients: int = 2,
-    num_concurrent_requests_per_client: int = 5,
-    max_num_completed_requests: int = 500,
-    timeout=90,
-    llm_api: str = "openai",
-    request_generator_config: RequestGeneratorConfig = None,
-    ttft_deadline: float = 0.1,
-    tbt_deadline: float = 0.05,
-    target_deadline_miss_rate: float = 0.1,
-    should_write_metrics: bool = True,
-    wandb_project: str = None,
-    wandb_group: str = None,
-    wandb_run_name: str = None,
-    address_append_value: Optional[str] = "chat/completions",
+    benchmark_config: BenchmarkConfig,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """Get the token throughput and latencies for the given model.
 
@@ -320,18 +293,7 @@ def run_benchmark(
         corpus_lines = f.readlines()
 
     run_main_loop(
-        model=model,
-        tokenizer_name=tokenizer_name,
-        llm_api=llm_api,
-        tokenizer=tokenizer,
-        additional_sampling_params=additional_sampling_params,
-        requests_interval_generator=requests_interval_generator,
-        requests_length_generator=requests_length_generator,
-        corpus_lines=corpus_lines,
-        address_append_value=address_append_value,
-        service_metrics=service_metrics,
-        num_clients=num_clients,
-        num_concurrent_requests_per_client=num_concurrent_requests_per_client,
+        benchmark_config=benchmark_config,
         generated_texts=generated_texts,
         pbar=pbar,
     )
@@ -350,337 +312,14 @@ def run_benchmark(
     os._exit(0)
 
 
-def parse_args():
-    args = argparse.ArgumentParser(
-        description="Run a token throughput and latency benchmark."
-    )
-
-    args.add_argument(
-        "--model", type=str, required=True, help="The model to use for this load test."
-    )
-    args.add_argument(
-        "--tokenizer",
-        type=str,
-        required=False,
-        help="The tokenizer to use for this load test. By default, the tokenizer is inferred from the model.",
-    )
-    args.add_argument(
-        "--num-clients",
-        type=int,
-        default=2,
-        help=("The number of clients to use for benchmark. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--num-concurrent-requests-per-client",
-        type=int,
-        default=5,
-        help=(
-            "The number of concurrent requests to send per client (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--timeout",
-        type=int,
-        default=1200,
-        help="The amount of time to run the load test for. (default: %(default)s)",
-    )
-    args.add_argument(
-        "--max-num-completed-requests",
-        type=int,
-        default=10,
-        help=(
-            "The number of requests to complete before finishing the test. Note "
-            "that its possible for the test to timeout first. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--additional-sampling-params",
-        type=str,
-        default="{}",
-        help=(
-            "Additional sampling params to send with the each request to the LLM API. "
-            "(default: %(default)s) No additional sampling params are sent."
-        ),
-    )
-    args.add_argument(
-        "--llm-api",
-        type=str,
-        default="openai",
-        help=(
-            f"The name of the llm api to use. Can select from {SUPPORTED_APIS}"
-            " (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--output-dir",
-        type=str,
-        default="benchmark_results",
-    )
-    args.add_argument(
-        "--request-interval-generator-provider",
-        type=str,
-        default="gamma",
-        help=(
-            "The name of the request generator provider to use. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--request-length-generator-provider",
-        type=str,
-        default="zipf",
-        help=("The name of the request length provider to use. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--gamma-request-interval-generator-cv",
-        type=float,
-        default=0.5,
-        help=(
-            "The coefficient of variation for the gamma request interval generator. "
-            "(default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--gamma-request-interval-generator-qps",
-        type=float,
-        default=0.2,
-        help=(
-            "The qps for the gamma request interval generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--poisson-request-interval-generator-qps",
-        type=float,
-        default=0.5,
-        help=(
-            "The qps for the poisson request interval generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--trace-request-interval-generator-trace-file",
-        type=str,
-        default=None,
-        help=(
-            "The trace file for the trace request interval generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--trace-request-interval-generator-start-time",
-        type=str,
-        default="1970-01-04 12:00:00",
-        help=(
-            "The start time for the trace request interval generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--trace-request-interval-generator-end-time",
-        type=str,
-        default="1970-01-04 15:00:00",
-        help=(
-            "The end time for the trace request interval generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--trace-request-interval-generator-time-scale-factor",
-        type=float,
-        default=0.3,
-        help=(
-            "The time scale factor for the trace request interval generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--fixed-request-generator-prefill-tokens",
-        type=int,
-        default=2048,
-        help=(
-            "The number of tokens to prefill the fixed request generator with. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--fixed-request-generator-decode-tokens",
-        type=int,
-        default=256,
-        help=(
-            "The number of tokens to decode the fixed request generator with. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--synthetic-request-generator-min-tokens",
-        type=int,
-        default=1024,
-        help=(
-            "The minimum number of tokens to generate for the synthetic request generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--request-generator-max-tokens",
-        type=int,
-        default=40000,
-        help=("The maximum number of tokens to generate. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--synthetic-request-generator-prefill-to-decode-ratio",
-        type=float,
-        default=10,
-        help=(
-            "The prefill to decode ratio for the synthetic request generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--zipf-request-length-generator-theta",
-        type=float,
-        default=0.4,
-        help=(
-            "The theta value for the zipf request length generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--zipf-request-length-generator-scramble",
-        type=bool,
-        default=False,
-        action=argparse.BooleanOptionalAction,
-        help=(
-            "Whether to scramble the zipf request length generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--trace-request-length-generator-trace-file",
-        type=str,
-        default=None,
-        help=(
-            "The trace file for the trace request length generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--trace-request-length-generator-prefill-scale-factor",
-        type=float,
-        default=1,
-        help=(
-            "The prefill scale factor for the trace request length generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--trace-request-length-generator-decode-scale-factor",
-        type=float,
-        default=1,
-        help=(
-            "The decode scale factor for the trace request length generator. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--seed",
-        type=int,
-        default=42,
-        help=("The seed for the request generator. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--ttft-deadline",
-        type=float,
-        default=0.1,
-        help=("The deadline for time to first token. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--tbt-deadline",
-        type=float,
-        default=0.05,
-        help=("The deadline between tokens. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--target-deadline-miss-rate",
-        type=float,
-        default=0.1,
-        help=("The target miss rate. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--should-use-given-dir",  # added to prevent the creation of a new directories for the capacity search
-        type=bool,
-        default=True,
-        action=argparse.BooleanOptionalAction,
-        help=(
-            "Whether to add directly use --output-dir directory or create new directories for the results. (default: %(default)s)"
-        ),
-    )
-    args.add_argument(
-        "--should-write-metrics",
-        type=bool,
-        default=False,
-        action=argparse.BooleanOptionalAction,
-        help=("Whether to write metrics to wandb. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--wandb-project",
-        type=str,
-        default=None,
-        help=("The wandb project name. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--wandb-group",
-        type=str,
-        default=None,
-        help=("The wandb group name. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--wandb-run-name",
-        type=str,
-        default=None,
-        help=("The wandb run name. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--address-append-value",
-        type=str,
-        default="chat/completions",
-        help=("The address append value for OpenAI API. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--time-stamp",
-        type=str,
-        default=datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
-        help=("The time stamp for the benchmark. (default: %(default)s)"),
-    )
-    args.add_argument(
-        "--prefill-lengths",
-        type=int,
-        nargs="+",
-        default=[],
-        help=(
-            "The list of prefill lengths for the prefill profiler. (default: %(default)s)"
-        ),
-    )
-
-    args = args.parse_args()
-
-    if args.tokenizer is None:
-        args.tokenizer = args.model
-
-    if not args.should_use_given_dir:
-        benchmark_identifier = f"{args.model}_{args.request_interval_generator_provider}_{args.request_length_generator_provider}"
-        benchmark_identifier = re.sub(r"[^\w\d-]+", "-", benchmark_identifier)
-        benchmark_identifier = re.sub(r"-{2,}", "-", benchmark_identifier)
-
-        # create a directory to store the results with date and time
-        args.output_dir = os.path.join(
-            args.output_dir,
-            benchmark_identifier,
-            datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
-        )
-
-    if args.additional_sampling_params:
-        args.additional_sampling_params = json.loads(args.additional_sampling_params)
-    else:
-        args.additional_sampling_params = {}
-
-    # dump config to a file
-    os.makedirs(args.output_dir, exist_ok=True)
-    with open(os.path.join(args.output_dir, "config.json"), "w") as f:
-        json.dump(vars(args), f, indent=4)
-
-    return args
-
-
 if __name__ == "__main__":
-    random.seed(11111)
-    args = parse_args()
-    request_generator_config = RequestGeneratorConfig(args=args)
+    config: BenchmarkConfig = BenchmarkConfig.create_from_cli_args()
+    random.seed(config.seed)
 
+    # TODO: update
+    request_generator_config = RequestGeneratorConfig(args=None)
+
+    # TODO: update
     run_benchmark(
         llm_api=args.llm_api,
         output_dir=args.output_dir,

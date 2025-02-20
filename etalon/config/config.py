@@ -29,13 +29,6 @@ class BaseRequestIntervalGeneratorConfig(BasePolyConfig):
 
 
 @dataclass
-class BaseRequestLengthGeneratorConfig(BasePolyConfig):
-    seed: int = field(
-        default=42, metadata={"help": "Random seed for the request length generator."}
-    )
-
-
-@dataclass
 class TraceRequestIntervalGeneratorConfig(BaseRequestIntervalGeneratorConfig):
     trace_file: str = field(
         default="data/processed_traces/AzureFunctionsInvocationTraceForTwoWeeksJan2021Processed.csv",
@@ -89,6 +82,13 @@ class StaticRequestIntervalGeneratorConfig(BaseRequestIntervalGeneratorConfig):
     @staticmethod
     def get_type():
         return RequestIntervalGeneratorType.STATIC
+
+
+@dataclass
+class BaseRequestLengthGeneratorConfig(BasePolyConfig):
+    seed: int = field(
+        default=42, metadata={"help": "Random seed for the request length generator."}
+    )
 
 
 @dataclass
@@ -222,6 +222,14 @@ class TraceRequestGeneratorConfig(BaseRequestGeneratorConfig):
 
 @dataclass
 class ClientConfig(BasePolyConfig):
+    model: str = field(
+        default="gpt-3.5-turbo",
+        metadata={"help": "The model to use for this load test."},
+    )
+    tokenizer: str = field(
+        default=None,
+        metadata={"help": "The tokenizer to use for this load test. By default, the tokenizer is inferred from the model."},
+    )
     num_clients: int = field(
         default=2,
         metadata={"help": "The number of clients to use for benchmark."},
@@ -238,6 +246,10 @@ class ClientConfig(BasePolyConfig):
     llm_api: str = field(
         default="openai",
         metadata={"help": f"The name of the llm api to use. Can select from {SUPPORTED_APIS}"},
+    )
+    address_append_value: str = field(
+        default="chat/completions",
+        metadata={"help": "The address append value for OpenAI API."},
     )
 
 
@@ -299,14 +311,6 @@ class BenchmarkConfig(ABC):
         default=42,
         metadata={"help": "Seed for the random number generator."},
     )
-    model: str = field(
-        default="gpt-3.5-turbo",
-        metadata={"help": "The model to use for this load test."},
-    )
-    tokenizer: str = field(
-        default=None,
-        metadata={"help": "The tokenizer to use for this load test. By default, the tokenizer is inferred from the model."},
-    )
     timeout: int = field(
         default=1200,
         metadata={"help": "The amount of time to run the load test for."},
@@ -315,10 +319,6 @@ class BenchmarkConfig(ABC):
         default=10,
         metadata={"help": "The number of requests to complete before finishing the test. Note "
                   "that its possible for the test to timeout first."},
-    )
-    address_append_value: str = field(
-        default="chat/completions",
-        metadata={"help": "The address append value for OpenAI API."},
     )
     timestamp: str = field(
         default_factory=lambda: datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
@@ -340,11 +340,11 @@ class BenchmarkConfig(ABC):
         default_factory=PrefillProfilerConfig,
         metadata={"help": "The prefill profiler configuration for the benchmark."},
     )
-    request_interval_generator: BaseRequestIntervalGeneratorConfig = field(
+    request_interval_generator_config: BaseRequestIntervalGeneratorConfig = field(
         default_factory=TraceRequestIntervalGeneratorConfig,
         metadata={"help": "The request interval generator configuration for the benchmark."},
     )
-    request_length_generator: BaseRequestLengthGeneratorConfig = field(
+    request_length_generator_config: BaseRequestLengthGeneratorConfig = field(
         default_factory=TraceRequestLengthGeneratorConfig,
         metadata={"help": "The request length generator configuration for the benchmark."},
     )
@@ -354,7 +354,7 @@ class BenchmarkConfig(ABC):
             self.tokenizer = self.model
         
         if not self.metrics_config.should_use_given_dir:
-            benchmark_identifier = f"{self.model}_{self.request_interval_generator.get_type()}_{self.request_length_generator.get_type()}"
+            benchmark_identifier = f"{self.model}_{self.request_interval_generator_config.get_type()}_{self.request_length_generator_config.get_type()}"
             benchmark_identifier = re.sub(r"[^\w\d-]+", "-", benchmark_identifier)
             benchmark_identifier = re.sub(r"-{2,}", "-", benchmark_identifier)
 

@@ -1,6 +1,7 @@
 import time
 from typing import Dict
 
+from etalon.config import DeadlineConfig, MetricsConfig
 from etalon.metrics.metric_store import MetricStore
 from etalon.metrics.request_metrics import RequestMetrics
 
@@ -10,29 +11,20 @@ class ServiceMetrics:
         self,
         timeout: float,
         max_requests: int,
-        ttft_deadline: float = 0.1,
-        tbt_deadline: float = 0.05,
-        target_deadline_miss_rate: float = 0.1,
-        should_write_metrics: bool = True,
-        wandb_project: str = None,
-        wandb_group: str = None,
-        wandb_run_name: str = None,
+        deadline_config: DeadlineConfig,
+        metrics_config: MetricsConfig,
     ) -> None:
         self.timeout = timeout
         self.max_requests = max_requests
         self.start_time = None
         self.end_time = None
+        self.output_dir = metrics_config.output_dir
 
         self.metric_store = MetricStore(
             timeout=timeout,
             max_requests=max_requests,
-            ttft_deadline=ttft_deadline,
-            tbt_deadline=tbt_deadline,
-            target_deadline_miss_rate=target_deadline_miss_rate,
-            should_write_metrics=should_write_metrics,
-            wandb_project=wandb_project,
-            wandb_group=wandb_group,
-            wandb_run_name=wandb_run_name,
+            deadline_config=deadline_config,
+            metrics_config=metrics_config,
         )
 
     @property
@@ -103,5 +95,5 @@ class ServiceMetrics:
     def __repr__(self) -> str:
         return self.__str__()
 
-    def store_output(self, output_dir: str):
-        self.metric_store.store_output(output_dir)
+    def store_output(self):
+        self.metric_store.store_output(self.output_dir)

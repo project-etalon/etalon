@@ -1,6 +1,7 @@
 from threading import Thread, Lock
 from multiprocessing import Queue as MPQueue
 
+from etalon.config import ClientConfig
 from etalon.core.llm_clients import construct_client
 
 
@@ -10,23 +11,20 @@ class RequestsManager:
     def __init__(
         self,
         client_id: int,
-        model: str,
-        tokenizer_name: str,
-        llm_api: str,
-        max_concurrent_requests: int,
+        client_config: ClientConfig,
         input_queue: MPQueue,
         output_queue: MPQueue,
     ):
-        self.max_concurrent_requests = max_concurrent_requests
+        self.client_config = client_config
         self.input_queue = input_queue
         self.output_queue = output_queue
         self.result_lock = Lock()
         self.results = []
         # just create a single client per manager
         self.llm_client = construct_client(
-            model_name=model,
-            tokenizer_name=tokenizer_name,
-            llm_api=llm_api,
+            model_name=client_config.model,
+            tokenizer_name=client_config.tokenizer,
+            llm_api=client_config.llm_api,
         )
         self.client_id = client_id
         self.start_tasks()
@@ -39,7 +37,7 @@ class RequestsManager:
         """
         self.client_threads = [
             Thread(target=self.process_requests)
-            for i in range(self.max_concurrent_requests)
+            for i in range(self.client_config.num_concurrent_requests_per_client)
         ]
 
         for thread in self.client_threads:

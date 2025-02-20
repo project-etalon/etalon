@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from tqdm import tqdm
 
-from etalon.config import BenchmarkConfig
+from etalon.config import BenchmarkConfig, ClientConfig
 from etalon.core.hf_utils import get_tokenizer
 from etalon.core.llm_clients import SUPPORTED_APIS
 from etalon.core.request_config import RequestConfig
@@ -32,20 +32,16 @@ from etalon.request_generator.length_generator.base_generator import (
 from etalon.request_generator.length_generator.generator_registry import (
     RequestLengthGeneratorRegistry,
 )
-from etalon.request_generator.request_generator_config import RequestGeneratorConfig
 from etalon.request_generator.utils import generate_random_prompt
 
 logger = init_logger(__name__)
 
 
 def get_request_params(
-    model: str,
-    llm_api: str,
+    client_config: ClientConfig,
     tokenizer: Any,
-    additional_sampling_params: Optional[Dict[str, Any]] = None,
     request_length_generator: Optional[BaseRequestLengthGenerator] = None,
     corpus_lines: List[str] = None,
-    address_append_value: Optional[str] = None,
     request_id: Optional[int] = None,
 ) -> Dict[str, Any]:
     (
@@ -61,13 +57,13 @@ def get_request_params(
         corpus_lines=corpus_lines,
     )
     default_sampling_params = {"max_tokens": num_output_tokens}
-    default_sampling_params.update(additional_sampling_params)
+    default_sampling_params.update(client_config.additional_sampling_params)
     request_config = RequestConfig(
-        model=model,
+        model=client_config.model,
         prompt=prompt,
         sampling_params=default_sampling_params,
-        llm_api=llm_api,
-        address_append_value=address_append_value,
+        llm_api=client_config.llm_api,
+        address_append_value=client_config.address_append_value,
         id=request_id,
     )
 
@@ -87,14 +83,11 @@ def should_send_new_request(
 def dispatch_requests(
     input_queue: Queue,
     service_metrics: ServiceMetrics,
-    model: str,
-    llm_api: str,
+    client_config: ClientConfig,
     tokenizer: Any,
-    additional_sampling_params: Dict[str, Any],
     requests_interval_generator: BaseRequestIntervalGenerator,
     requests_length_generator: BaseRequestLengthGenerator,
     corpus_lines: List[str],
-    address_append_value: str,
     stop_event: threading.Event,
 ) -> None:
     """Thread function to generate and dispatch requests."""
@@ -111,13 +104,10 @@ def dispatch_requests(
             # Create and dispatch request
             service_metrics.register_launched_request()
             request_config = get_request_params(
-                model=model,
-                llm_api=llm_api,
+                client_config=client_config,
                 tokenizer=tokenizer,
-                additional_sampling_params=additional_sampling_params,
                 request_length_generator=requests_length_generator,
                 corpus_lines=corpus_lines.copy(),
-                address_append_value=address_append_value,
                 request_id=service_metrics.num_requests,
             )
             input_queue.put(request_config)
@@ -155,12 +145,21 @@ def process_results(
 
 def run_main_loop(
     benchmark_config: BenchmarkConfig,
+    requests_interval_generator: Optional[BaseRequestIntervalGenerator] = None,
+    requests_length_generator: Optional[BaseRequestLengthGenerator] = None,
+    service_metrics: ServiceMetrics = None,
+    corpus_lines: List[str] = None,
     generated_texts: List[str] = None,
     pbar: tqdm = None,
 ):
     """Run the main loop for the benchmark."""
 
     logger.info("Starting the main loop.")
+
+    tokenizer = get_tokenizer(
+        tokenizer_name=benchmark_config.client_config.tokenizer,
+        trust_remote_code=True,
+    )
 
     # Create queues for commmunication
     input_queue = Queue()
@@ -169,11 +168,7 @@ def run_main_loop(
 
     # Initialize request launcher
     req_launcher = RequestsLauncher(
-        model=model,
-        tokenizer_name=tokenizer_name,
-        llm_api=llm_api,
-        num_clients=num_clients,
-        num_concurrent_requests_per_client=num_concurrent_requests_per_client,
+        client_config=benchmark_config.client_config,
         input_queue=input_queue,
         output_queue=output_queue,
     )
@@ -187,14 +182,11 @@ def run_main_loop(
         args=(
             input_queue,
             service_metrics,
-            model,
-            llm_api,
+            benchmark_config.client_config,
             tokenizer,
-            additional_sampling_params,
             requests_interval_generator,
             requests_length_generator,
             corpus_lines,
-            address_append_value,
             stop_event,
         ),
     )
@@ -237,20 +229,7 @@ def run_benchmark(
     """Get the token throughput and latencies for the given model.
 
     Args:
-        model: The name of the model to query.
-        additional_sampling_params: Additional sampling parameters to send with the request.
-            For more information see the LLM APIs documentation for the completions
-        num_ray_clients: The number of ray actors to use for the benchmark. Each actor handles one LLM client.
-        num_concurrent_requests_per_client: The number of concurrent requests per ray actor to make. Increase
-            this to increase the amount of load and vice versa.
-        timeout The amount of time to run the test for before reporting results.
-        llm_api: The name of the llm api to use. Either "openai" or "litellm".
-        request_interval_generator_provider: The name of the request generator provider to use for determining intervals.
-        request_length_generator_provider: The name of the request generator provider to use for determining lengths.
-        request_generator_config: The configuration for the request generator provider.
-        ttft_deadline: The deadline for time to first token.
-        tbt_deadline: The deadline between tokens.
-        target_deadline_miss_rate: The target deadline miss rate.
+        benchmark_config: The benchmark configuration.
 
     Returns:
         A summary of the performance metrics collected across all completed requests
@@ -258,32 +237,22 @@ def run_benchmark(
         The individual metrics for each request.
     """
     service_metrics = ServiceMetrics(
-        max_requests=max_num_completed_requests,
-        timeout=timeout,
-        ttft_deadline=ttft_deadline,
-        tbt_deadline=tbt_deadline,
-        target_deadline_miss_rate=target_deadline_miss_rate,
-        should_write_metrics=should_write_metrics,
-        wandb_project=wandb_project,
-        wandb_group=wandb_group,
-        wandb_run_name=wandb_run_name,
-    )
-
-    tokenizer = get_tokenizer(
-        tokenizer_name=tokenizer_name,
-        trust_remote_code=True,
+        max_requests=benchmark_config.max_completed_requests,
+        timeout=benchmark_config.timeout,
+        deadline_config=benchmark_config.deadline_config,
+        metrics_config=benchmark_config.metrics_config,
     )
 
     generated_texts = []
-    pbar = tqdm(total=max_num_completed_requests)
+    pbar = tqdm(total=benchmark_config.max_completed_requests)
 
-    requests_interval_generator = RequestIntervalGeneratorRegistry.get_from_str(
-        request_generator_config.request_interval_generator_provider,
-        request_generator_config.get_request_interval_generator_config(),
+    requests_interval_generator = RequestIntervalGeneratorRegistry.get(
+        benchmark_config.request_interval_generator_config.get_type(),
+        benchmark_config.request_interval_generator_config,
     )
     requests_length_generator = RequestLengthGeneratorRegistry.get_from_str(
-        request_generator_config.request_length_generator_provider,
-        request_generator_config.get_request_length_generator_config(),
+        benchmark_config.request_length_generator_config.get_type(),
+        benchmark_config.request_length_generator_config,
     )
 
     corpus_path = os.path.abspath(
@@ -294,19 +263,23 @@ def run_benchmark(
 
     run_main_loop(
         benchmark_config=benchmark_config,
+        requests_interval_generator=requests_interval_generator,
+        requests_length_generator=requests_length_generator,
+        service_metrics=service_metrics,
+        corpus_lines=corpus_lines,
         generated_texts=generated_texts,
         pbar=pbar,
     )
 
     logger.info(
-        f"Results for token benchmark for {model} queried with the {llm_api} api. {service_metrics}"
+        f"Results for token benchmark for {benchmark_config.client_config.model} queried with the {benchmark_config.client_config.llm_api} api. {service_metrics}"
     )
 
-    service_metrics.store_output(output_dir)
-    logger.info(f"Metrics stored to {output_dir}")
+    service_metrics.store_output()
+    logger.info(f"Metrics stored to {service_metrics.output_dir}")
 
     # store the generated texts
-    with open(os.path.join(output_dir, "generated_texts.txt"), "w") as f:
+    with open(os.path.join(service_metrics.output_dir, "generated_texts.txt"), "w") as f:
         f.write(("\n" + "-" * 30 + "\n").join(generated_texts))
     
     os._exit(0)
@@ -315,28 +288,4 @@ def run_benchmark(
 if __name__ == "__main__":
     config: BenchmarkConfig = BenchmarkConfig.create_from_cli_args()
     random.seed(config.seed)
-
-    # TODO: update
-    request_generator_config = RequestGeneratorConfig(args=None)
-
-    # TODO: update
-    run_benchmark(
-        llm_api=args.llm_api,
-        output_dir=args.output_dir,
-        model=args.model,
-        tokenizer_name=args.tokenizer,
-        timeout=args.timeout,
-        max_num_completed_requests=args.max_num_completed_requests,
-        num_clients=args.num_clients,
-        num_concurrent_requests_per_client=args.num_concurrent_requests_per_client,
-        additional_sampling_params=args.additional_sampling_params,
-        request_generator_config=request_generator_config,
-        ttft_deadline=args.ttft_deadline,
-        tbt_deadline=args.tbt_deadline,
-        target_deadline_miss_rate=args.target_deadline_miss_rate,
-        should_write_metrics=args.should_write_metrics,
-        wandb_project=args.wandb_project,
-        wandb_group=args.wandb_group,
-        wandb_run_name=args.wandb_run_name,
-        address_append_value=args.address_append_value,
-    )
+    run_benchmark(config=config)

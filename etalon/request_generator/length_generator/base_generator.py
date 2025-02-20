@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Tuple
 
-from etalon.request_generator.length_generator.config import (
+from etalon.config import (
     BaseRequestLengthGeneratorConfig,
 )
 

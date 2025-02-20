@@ -2,6 +2,7 @@ import json
 import os
 from typing import List
 
+from etalon.config import DeadlineConfig
 from etalon.metrics.metric_utils import (
     find_min_tbt_deadline_to_meet,
     get_request_level_deadline_miss_rate,
@@ -16,13 +17,11 @@ class RequestLevelMetrics:
 
     def __init__(
         self,
-        ttft_deadline: float,
-        tbt_deadline: float,
-        target_deadline_miss_rate: float,
+        deadline_config: DeadlineConfig,
     ) -> None:
-        self.ttft_deadline: float = ttft_deadline
-        self.tbt_deadline: float = tbt_deadline
-        self.target_deadline_miss_rate: float = target_deadline_miss_rate
+        self.ttft_deadline: float = deadline_config.ttft_deadline
+        self.tbt_deadline: float = deadline_config.tbt_deadline
+        self.target_deadline_miss_rate: float = deadline_config.target_deadline_miss_rate
         self.num_prompt_tokens: List[int] = []
         self.num_output_tokens: List[int] = []
         self.num_total_tokens: List[int] = []

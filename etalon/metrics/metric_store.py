@@ -7,6 +7,7 @@ import pandas as pd
 import plotly_express as px
 import wandb
 
+from etalon.config import DeadlineConfig, MetricsConfig
 from etalon.logger import init_logger
 from etalon.metrics.cdf_sketch import CDFSketch
 from etalon.metrics.metric_utils import (
@@ -30,13 +31,8 @@ class MetricStore:
         self,
         timeout: float,
         max_requests: int,
-        ttft_deadline: float = 0.1,
-        tbt_deadline: float = 0.05,
-        target_deadline_miss_rate: float = 0.1,
-        should_write_metrics: bool = True,
-        wandb_project: str = None,
-        wandb_group: str = None,
-        wandb_run_name: str = None,
+        deadline_config: DeadlineConfig,
+        metrics_config: MetricsConfig,
     ) -> None:
         self.timeout = timeout
         self.max_requests = max_requests
@@ -47,20 +43,18 @@ class MetricStore:
         self.start_time: Optional[float] = None
         self.end_time: Optional[float] = None
         self.error_code_freq: DefaultDict[int, int] = DefaultDict(int)
-        self.ttft_deadline = ttft_deadline
-        self.tbt_deadline = tbt_deadline
-        self.target_deadline_miss_rate = target_deadline_miss_rate
+        self.ttft_deadline = deadline_config.ttft_deadline
+        self.tbt_deadline = deadline_config.tbt_deadline
+        self.target_deadline_miss_rate = deadline_config.target_deadline_miss_rate
         self.service_level_missed_deadlines = 0
         self.service_level_total_deadlines = 0
-        self.should_write_metrics = should_write_metrics
-        self.wandb_project = wandb_project
-        self.wandb_group = wandb_group
-        self.wandb_run_name = wandb_run_name
+        self.should_write_metrics = metrics_config.should_write_metrics
+        self.wandb_project = metrics_config.wandb_project
+        self.wandb_group = metrics_config.wandb_group
+        self.wandb_run_name = metrics_config.wandb_run_name
 
         self.request_level_metrics = RequestLevelMetrics(
-            ttft_deadline=ttft_deadline,
-            tbt_deadline=tbt_deadline,
-            target_deadline_miss_rate=target_deadline_miss_rate,
+            deadline_config=deadline_config
         )
 
         self.summaries: Dict[str, CDFSketch] = {

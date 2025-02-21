@@ -54,10 +54,8 @@ class PrefillProfiler:
             PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT
         )
         self.config.max_completed_requests = PREFILL_MAX_NUM_COMPLETED_REQUESTS
-        self.config.request_length_generator_config = (
-            FixedRequestLengthGeneratorConfig(
-                decode_tokens=PREFILL_PROFILER_DECODE_TOKENS
-            )
+        self.config.request_length_generator_config = FixedRequestLengthGeneratorConfig(
+            decode_tokens=PREFILL_PROFILER_DECODE_TOKENS
         )
         self.base_dir = self.config.metrics_config.output_dir
 
@@ -135,9 +133,7 @@ class PrefillProfiler:
 
         joblib.dump(
             self.model,
-            os.path.join(
-                self.base_dir, "prefill_predictor.pkl"
-            ),
+            os.path.join(self.base_dir, "prefill_predictor.pkl"),
         )
 
         # also plot the curve containing model's predictions and actual outputs, and dump it
@@ -151,11 +147,7 @@ class PrefillProfiler:
         plt.ylabel("Prefill Time")
         plt.title(self.config.client_config.model)
         plt.legend()
-        plt.savefig(
-            os.path.join(
-                self.base_dir, "prefill_predictions.png"
-            )
-        )
+        plt.savefig(os.path.join(self.base_dir, "prefill_predictions.png"))
 
         # also do fine-grained plotting
         fine_grained_prefill_values = np.linspace(
@@ -241,9 +233,7 @@ class PrefillProfiler:
 
             joblib.dump(
                 predictions,
-                os.path.join(
-                    self.base_dir, "prefill_predictions.pkl"
-                ),
+                os.path.join(self.base_dir, "prefill_predictions.pkl"),
             )
 
 

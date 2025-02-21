@@ -485,5 +485,7 @@ class BenchmarkConfig(ABC):
 
     def write_config_to_file(self):
         config_dict = dataclass_to_dict(self)
-        with open(os.path.join(f"{self.metrics_config.output_dir}","config.json"), "w") as f:
+        with open(
+            os.path.join(f"{self.metrics_config.output_dir}", "config.json"), "w"
+        ) as f:
             json.dump(config_dict, f, indent=4)

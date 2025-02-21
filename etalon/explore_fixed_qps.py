@@ -41,7 +41,6 @@ def num_fixed_qps_values(capacity_search: CapacitySearch):
             tbt,
             ttft,
             tpot,
-            ttft_slo_attainment_rate,
             deadline_miss_rate,
             run_id,
         ) = capacity_search.is_under_sla(qps)

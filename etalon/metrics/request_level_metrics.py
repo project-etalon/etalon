@@ -30,6 +30,7 @@ class RequestLevelMetrics:
         self.prefill_predictions = prefill_profiler_config.predictions
         self.use_predictions_for_ttft = prefill_profiler_config.use_predictions_for_ttft
 
+        self.request_dispatched_at: List[float] = []
         self.num_prompt_tokens: List[int] = []
         self.num_output_tokens: List[int] = []
         self.num_total_tokens: List[int] = []
@@ -43,6 +44,7 @@ class RequestLevelMetrics:
         self.min_tbt_deadline_to_meet: List[float] = []
 
     def put(self, request_metrics: RequestMetrics):
+        self.request_dispatched_at.append(request_metrics.request_dispatched_at)
         self.num_prompt_tokens.append(request_metrics.num_prompt_tokens)
         self.num_output_tokens.append(request_metrics.num_output_tokens)
         self.num_total_tokens.append(request_metrics.num_total_tokens)
@@ -78,6 +80,7 @@ class RequestLevelMetrics:
 
     def to_dict(self):
         return {
+            "request_dispatched_at": self.request_dispatched_at,
             "num_prompt_tokens": self.num_prompt_tokens,
             "num_output_tokens": self.num_output_tokens,
             "num_total_tokens": self.num_total_tokens,

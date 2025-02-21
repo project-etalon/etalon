@@ -1,4 +1,6 @@
+import multiprocessing
 import os
+import platform
 import random
 import threading
 import time
@@ -215,7 +217,7 @@ def run_main_loop(
     processor_thread.join()
 
     # Terminate all clients
-    req_launcher.complete_tasks()
+    req_launcher.kill_clients()
 
     pbar.close()
     logger.info("Main loop completed.")
@@ -249,7 +251,7 @@ def run_benchmark(
         benchmark_config.request_interval_generator_config.get_type(),
         benchmark_config.request_interval_generator_config,
     )
-    requests_length_generator = RequestLengthGeneratorRegistry.get_from_str(
+    requests_length_generator = RequestLengthGeneratorRegistry.get(
         benchmark_config.request_length_generator_config.get_type(),
         benchmark_config.request_length_generator_config,
     )
@@ -287,6 +289,9 @@ def run_benchmark(
 
 
 if __name__ == "__main__":
-    config: BenchmarkConfig = BenchmarkConfig.create_from_cli_args()
-    random.seed(config.seed)
-    run_benchmark(config=config)
+    if platform.system() == "Darwin":
+        multiprocessing.set_start_method("fork", force=True)
+
+    benchmark_config: BenchmarkConfig = BenchmarkConfig.create_from_cli_args()
+    random.seed(benchmark_config.seed)
+    run_benchmark(benchmark_config=benchmark_config)

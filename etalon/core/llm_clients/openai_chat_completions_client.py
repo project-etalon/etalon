@@ -27,13 +27,13 @@ class OpenAIChatCompletionsClient(BaseLLMClient):
             logger.warning(
                 "Warning: OPENAI_API_BASE environment variable not set. Defaulting to localhost."
             )
-            self.key = os.environ.get("OPENAI_API_KEY")
-            if not self.key:
-                self.key = ""
-                logger.warning(
-                    "Warning: OPENAI_API_KEY environment variable not set. Defaulting to empty string."
-                )
-            self.start_time = time.monotonic()
+        self.key = os.environ.get("OPENAI_API_KEY")
+        if not self.key:
+            self.key = ""
+            logger.warning(
+                "Warning: OPENAI_API_KEY environment variable not set. Defaulting to empty string."
+            )
+        self.start_time = time.monotonic()
 
     def total_tokens(self, response_list: List[str]) -> int:
         merged_content = "".join(response_list)

@@ -1,5 +1,7 @@
 import json
+import multiprocessing
 import os
+import platform
 
 import wandb
 import yaml
@@ -134,6 +136,9 @@ def setup():
 
 
 if __name__ == "__main__":
+    if platform.system() == "Darwin":
+        multiprocessing.set_start_method("fork", force=True)
+
     args, config = setup()
     job_configs = JobConfig.generate_job_configs(config)
 

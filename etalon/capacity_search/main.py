@@ -1,6 +1,8 @@
 import argparse
 import json
+import multiprocessing
 import os
+import platform
 import time
 
 import wandb
@@ -115,4 +117,7 @@ def run():
 
 
 if __name__ == "__main__":
+    if platform.system() == "Darwin":
+        multiprocessing.set_start_method("fork", force=True)
+
     run()

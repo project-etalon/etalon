@@ -1,6 +1,8 @@
 import glob
 import json
+import multiprocessing
 import os
+import platform
 
 import joblib
 import matplotlib.pyplot as plt
@@ -243,6 +245,9 @@ class PrefillProfiler:
 
 
 if __name__ == "__main__":
+    if platform.system() == "Darwin":
+        multiprocessing.set_start_method("fork", force=True)
+
     config: BenchmarkConfig = BenchmarkConfig.create_from_cli_args()
     prefill_profiler = PrefillProfiler(config)
     prefill_profiler.run()

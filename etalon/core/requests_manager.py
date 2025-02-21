@@ -29,7 +29,7 @@ class RequestsManager:
         self.client_id = client_id
         self.start_tasks()
 
-    async def start_tasks(self):
+    def start_tasks(self):
         """Starts the tasks to handle requests.
 
         Returns:
@@ -43,9 +43,9 @@ class RequestsManager:
         for thread in self.client_threads:
             thread.start()
 
-    async def process_requests(self) -> None:
+    def process_requests(self) -> None:
         while True:
-            request_config = await self.input_queue.get()
+            request_config = self.input_queue.get()
             if request_config is None:
                 break
             result = self.llm_client.send_llm_request(request_config)

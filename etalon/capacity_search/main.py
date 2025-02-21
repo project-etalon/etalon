@@ -26,7 +26,7 @@ def get_parser():
     parser.add_argument(
         "--profile-dir",
         type=str,
-        default="prefill_experiments/prefill_profiler_vllm_llama-3-8b",
+        default=None,
     )
     parser.add_argument(
         "--config-path",

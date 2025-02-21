@@ -17,3 +17,5 @@ PREFILL_NUM_CLIENTS = 1
 PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT = 1
 # Number of completed requests to wait for before stopping the prefill profiling for a prompt length
 PREFILL_MAX_NUM_COMPLETED_REQUESTS = 1
+# Decode tokens when running the prefill profiler
+PREFILL_PROFILER_DECODE_TOKENS = 16

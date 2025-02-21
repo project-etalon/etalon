@@ -201,7 +201,7 @@ class CapacitySearch:
             wandb_run_name=f"qps_{qps}_model_{self.job_config.model_config.name}_engine_{self.job_config.server_config.openai_server_engine}",
             should_write_metrics=self.args.should_write_metrics_to_wandb,
             use_predictions_for_ttft=self.args.profile_dir is not None,
-            profile_dir=self.args.profile_dir,
+            predictor_dir=self.args.profile_dir,
         )
 
         run_dir = benchmark_config.get_run_dir()

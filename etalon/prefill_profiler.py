@@ -55,8 +55,11 @@ class PrefillProfiler:
         )
         self.config.max_completed_requests = PREFILL_MAX_NUM_COMPLETED_REQUESTS
         self.config.request_length_generator_config = (
-            FixedRequestLengthGeneratorConfig()
+            FixedRequestLengthGeneratorConfig(
+                decode_tokens=PREFILL_PROFILER_DECODE_TOKENS
+            )
         )
+        self.base_dir = self.config.metrics_config.output_dir
 
     def _get_result_file(self, run_dir: str) -> str:
         files = glob.glob(os.path.join(run_dir, f"request_level_metrics.json"))
@@ -69,7 +72,7 @@ class PrefillProfiler:
         for prefill_value in self.prefill_values:
             self.config.request_length_generator_config.prefill_tokens = prefill_value
             run_dir = os.path.join(
-                self.config.metrics_config.output_dir,
+                self.base_dir,
                 f"{self.config.client_config.model}_{prefill_value}",
             )
             if os.path.isdir(run_dir):
@@ -133,7 +136,7 @@ class PrefillProfiler:
         joblib.dump(
             self.model,
             os.path.join(
-                self.config.metrics_config.output_dir, "prefill_predictor.pkl"
+                self.base_dir, "prefill_predictor.pkl"
             ),
         )
 
@@ -150,7 +153,7 @@ class PrefillProfiler:
         plt.legend()
         plt.savefig(
             os.path.join(
-                self.config.metrics_config.output_dir, "prefill_predictions.png"
+                self.base_dir, "prefill_predictions.png"
             )
         )
 
@@ -175,7 +178,7 @@ class PrefillProfiler:
         plt.legend()
         plt.savefig(
             os.path.join(
-                self.config.metrics_config.output_dir,
+                self.base_dir,
                 "fine_grained_prefill_predictions.png",
             )
         )
@@ -239,7 +242,7 @@ class PrefillProfiler:
             joblib.dump(
                 predictions,
                 os.path.join(
-                    self.config.metrics_config.output_dir, "prefill_predictions.pkl"
+                    self.base_dir, "prefill_predictions.pkl"
                 ),
             )
 

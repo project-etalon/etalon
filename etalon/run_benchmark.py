@@ -285,8 +285,6 @@ def run_benchmark(
     ) as f:
         f.write(("\n" + "-" * 30 + "\n").join(generated_texts))
 
-    os._exit(0)
-
 
 if __name__ == "__main__":
     if platform.system() == "Darwin":

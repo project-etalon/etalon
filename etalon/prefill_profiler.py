@@ -10,9 +10,9 @@ import wandb
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import PolynomialFeatures
 
+from etalon.config import BenchmarkConfig, FixedRequestLengthGeneratorConfig, StaticRequestIntervalGeneratorConfig
 from etalon.logger import init_logger
-from etalon.request_generator.request_generator_config import RequestGeneratorConfig
-from etalon.run_benchmark import parse_args, run_benchmark
+from etalon.run_benchmark import run_benchmark
 
 logger = init_logger(__name__)
 
@@ -25,15 +25,12 @@ PREFILL_RANDOM_FOREST_PARAMS = {
     "n_estimators": 10,
     "random_state": 0,
 }
-# Request length/interval generator provider for prefill profiling
-PREFILL_REQUEST_LENGTH_GENERATOR_PROVIDER = "fixed"
-PREFILL_REQUEST_INTERVAL_GENERATOR_PROVIDER = "static"
 # Polynomial degree for the prefill time predictor
 PREFILL_POLYNOMIAL_DEGREE = 2
 # RMSE threshold for the prefill time predictor
 PREFILL_RMSE_THRESHOLD = 0.05
 # Number of Ray clients to use for prefill profiling
-PREFILL_NUM_RAY_CLIENTS = 1
+PREFILL_NUM_CLIENTS = 1
 # Number of concurrent requests per client for prefill profiling
 PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT = 1
 # Number of completed requests to wait for before stopping the prefill profiling for a prompt length
@@ -41,14 +38,14 @@ PREFILL_MAX_NUM_COMPLETED_REQUESTS = 1
 
 
 class PrefillProfiler:
-    def __init__(self, args) -> None:
-        self.args = args
+    def __init__(self, config: BenchmarkConfig) -> None:
+        self.config = config
         self.prefill_values = PREFILL_VALUES
         if (
-            type(self.args.prefill_lengths) is list
-            and len(self.args.prefill_lengths) > 0
+            type(self.config.prefill_profiler_config.prefill_lengths) is list
+            and len(self.config.prefill_profiler_config.prefill_lengths) > 0
         ):
-            self.prefill_values = self.args.prefill_lengths
+            self.prefill_values = self.config.prefill_profiler_config.prefill_lengths
         self.prefill_times = []
         self.model = None
         self.transformer = PolynomialFeatures(
@@ -60,6 +57,14 @@ class PrefillProfiler:
         else:
             raise NotImplementedError(f"Model {PREFILL_MODEL} is not implemented")
 
+        # update the config with some fixed constants
+        self.config.request_interval_generator_config = StaticRequestIntervalGeneratorConfig()
+        self.config.metrics_config.should_write_metrics = False
+        self.config.client_config.num_clients = PREFILL_NUM_CLIENTS
+        self.config.client_config.num_concurrent_requests_per_client = PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT
+        self.config.max_completed_requests = PREFILL_MAX_NUM_COMPLETED_REQUESTS
+        self.config.request_length_generator_config = FixedRequestLengthGeneratorConfig()
+
     def _get_result_file(self, run_dir: str) -> str:
         files = glob.glob(os.path.join(run_dir, f"request_level_metrics.json"))
         if len(files) == 0:
@@ -68,41 +73,19 @@ class PrefillProfiler:
         return files[0]
 
     def run(self):
-        request_generator_config = RequestGeneratorConfig(self.args)
-        request_generator_config.request_interval_generator_provider = (
-            PREFILL_REQUEST_INTERVAL_GENERATOR_PROVIDER
-        )
-        request_generator_config.request_length_generator_provider = (
-            PREFILL_REQUEST_LENGTH_GENERATOR_PROVIDER
-        )
         for prefill_value in self.prefill_values:
-            request_generator_config.fixed_request_generator_prefill_tokens = (
-                prefill_value
-            )
+            self.config.request_length_generator_config.prefill_tokens = prefill_value
             run_dir = os.path.join(
-                self.args.output_dir, f"{self.args.model}_{prefill_value}"
+                self.config.metrics_config.output_dir, f"{self.config.client_config.model}_{prefill_value}"
             )
             if os.path.isdir(run_dir):
                 logger.info(f"Skipping profiling for prefill value = {prefill_value}...")
             else:
+                self.config.metrics_config.wandb_run_name = f"prefill_p{prefill_value}_{self.config.client_config.model}"
+                self.config.metrics_config.output_dir = run_dir
                 os.makedirs(run_dir, exist_ok=True)
                 logger.info(f"Running profiling for prefill value = {prefill_value}...")
-                run_benchmark(
-                    model=self.args.model,
-                    tokenizer_name=self.args.tokenizer,
-                    output_dir=run_dir,
-                    additional_sampling_params=self.args.additional_sampling_params,
-                    num_ray_clients=PREFILL_NUM_RAY_CLIENTS,
-                    num_concurrent_requests_per_client=PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT,
-                    max_num_completed_requests=PREFILL_MAX_NUM_COMPLETED_REQUESTS,
-                    timeout=self.args.timeout,
-                    llm_api=self.args.llm_api,
-                    request_generator_config=request_generator_config,
-                    should_write_metrics=False,
-                    wandb_project=self.args.wandb_project,
-                    wandb_group=self.args.wandb_group,
-                    wandb_run_name=f"prefill_p{prefill_value}_{self.args.model}",
-                )
+                run_benchmark(self.config)
                 logger.info(f"Run benchmark done")
                 if wandb.run:
                     wandb.finish()
@@ -148,7 +131,7 @@ class PrefillProfiler:
         )
 
         joblib.dump(
-            self.model, os.path.join(self.args.output_dir, "prefill_predictor.pkl")
+            self.model, os.path.join(self.config.metrics_config.output_dir, "prefill_predictor.pkl")
         )
 
         # also plot the curve containing model's predictions and actual outputs, and dump it
@@ -160,9 +143,9 @@ class PrefillProfiler:
         )
         plt.xlabel("Prompt Length")
         plt.ylabel("Prefill Time")
-        plt.title(self.args.model)
+        plt.title(self.config.client_config.model)
         plt.legend()
-        plt.savefig(os.path.join(self.args.output_dir, "prefill_predictions.png"))
+        plt.savefig(os.path.join(self.config.metrics_config.output_dir, "prefill_predictions.png"))
 
         # also do fine-grained plotting
         fine_grained_prefill_values = np.linspace(
@@ -181,19 +164,19 @@ class PrefillProfiler:
         )
         plt.xlabel("Prompt Length")
         plt.ylabel("Prefill Time")
-        plt.title(self.args.model)
+        plt.title(self.config.client_config.model)
         plt.legend()
         plt.savefig(
-            os.path.join(self.args.output_dir, "fine_grained_prefill_predictions.png")
+            os.path.join(self.config.metrics_config.output_dir, "fine_grained_prefill_predictions.png")
         )
 
         plt.close()
 
-        if self.args.wandb_project and self.args.should_write_metrics:
+        if self.config.metrics_config.wandb_project and self.config.metrics_config.should_write_metrics:
             wandb.init(
-                project=self.args.wandb_project,
-                group=self.args.wandb_group,
-                name=f"prefill_profiler_{self.args.model}_{self.args.time_stamp}",
+                project=self.config.metrics_config.wandb_project,
+                group=self.config.metrics_config.wandb_group,
+                name=f"prefill_profiler_{self.config.client_config.model}_{self.config.timestamp}",
             )
             data = {
                 "prefill_lengths": self.prefill_values,
@@ -230,6 +213,6 @@ class PrefillProfiler:
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    prefill_profiler = PrefillProfiler(args)
+    config: BenchmarkConfig = BenchmarkConfig.create_from_cli_args()
+    prefill_profiler = PrefillProfiler(config)
     prefill_profiler.run()

@@ -221,7 +221,7 @@ class TraceRequestGeneratorConfig(BaseRequestGeneratorConfig):
 
 
 @dataclass
-class ClientConfig(BasePolyConfig):
+class ClientConfig:
     model: str = field(
         default="gpt-3.5-turbo",
         metadata={"help": "The model to use for this load test."},
@@ -254,7 +254,7 @@ class ClientConfig(BasePolyConfig):
 
 
 @dataclass
-class MetricsConfig(BasePolyConfig):
+class MetricsConfig:
     output_dir: str = field(
         default="benchmark_results",
         metadata={"help": "The directory to save the benchmark results to."},
@@ -282,7 +282,7 @@ class MetricsConfig(BasePolyConfig):
 
 
 @dataclass
-class DeadlineConfig(BasePolyConfig):
+class DeadlineConfig:
     ttft_deadline: float = field(
         default=0.1,
         metadata={"help": "The deadline for time to first token."},
@@ -298,7 +298,7 @@ class DeadlineConfig(BasePolyConfig):
 
 
 @dataclass
-class PrefillProfilerConfig(BasePolyConfig):
+class PrefillProfilerConfig:
     prefill_lengths: List[int] = field(
         default_factory=lambda: [],
         metadata={"help": "The lengths to prefill the profiler with."},

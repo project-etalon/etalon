@@ -47,17 +47,6 @@ class CapacitySearch:
         self.node_ip = get_ip()
         self.job_config = job_config
         self.args = args
-        self.prefill_model = None
-        self.transformer = None
-
-        if self.args.slo_type == "deadline" and self.args.profile_dir is not None:
-            prefill_model_path = os.path.join(
-                self.args.profile_dir, f"prefill_predictor.pkl"
-            )
-            self.prefill_model: RandomForestRegressor = joblib.load(prefill_model_path)
-            self.transformer = PolynomialFeatures(
-                degree=PREFILL_POLYNOMIAL_DEGREE, include_bias=False
-            )
 
     def release_resources(self):
         pass
@@ -92,36 +81,7 @@ class CapacitySearch:
         with open(request_level_metrics_file, "r") as f:
             request_level_metrics = json.load(f)
 
-        # Get TTFT, TBT at request level
-        ttft_array = request_level_metrics["ttft"]
-        tbt_array = request_level_metrics["tbt"]
-
-        # Get prompt tokens and calculate TTFT deadlines (prefill time + ttft_slack_slo)
-        if self.args.profile_dir is not None:
-            logger.info("Using dynamic TTFT deadlines (using predictor) with deadline based SLO")
-            prompt_tokens_array = request_level_metrics["num_prompt_tokens"]
-            prompt_tokens_array = self.transformer.fit_transform(
-                np.array(prompt_tokens_array).reshape(-1, 1)
-            ).tolist()
-            ttft_deadlines = self.prefill_model.predict(prompt_tokens_array).tolist()
-            ttft_deadlines = [i + self.args.ttft_slack_slo for i in ttft_deadlines]
-        else:
-            logger.info("Using constant TTFT deadlines with deadline based SLO")
-            ttft_deadlines = [self.args.ttft_slo] * len(ttft_array)
-
-        # Create inter-token times array for each request (TTFT + TBT) to calculate deadline miss rate
-        tbt_deadlines = [self.args.tbt_slo] * len(ttft_array)
-        inter_token_times_array = [
-            [ttft_array[i]] + tbt_array[i] for i in range(len(ttft_array))
-        ]
-
-        # Calculate deadline miss rate at request level
-        deadline_miss_rate_array = []
-        for i in range(len(ttft_array)):
-            miss_rate_value, _, _ = get_request_level_deadline_miss_rate(
-                inter_token_times_array[i], ttft_deadlines[i], tbt_deadlines[i]
-            )
-            deadline_miss_rate_array.append(miss_rate_value)
+        deadline_miss_rate_array = request_level_metrics["deadline_miss_rate"]
 
         # Calculate percentile values of deadline miss rate
         deadline_miss_rate = np.quantile(
@@ -234,10 +194,14 @@ class CapacitySearch:
             ),
             qps=qps,
             tbt_deadline=self.args.tbt_slo,
+            ttft_deadline=self.args.ttft_slo,
+            ttft_slack=self.args.ttft_slack_slo,
             wandb_project=self.args.wandb_project,
             wandb_group=self.args.wandb_group,
             wandb_run_name=f"qps_{qps}_model_{self.job_config.model_config.name}_engine_{self.job_config.server_config.openai_server_engine}",
             should_write_metrics=self.args.should_write_metrics_to_wandb,
+            use_predictions_for_ttft=self.args.profile_dir is not None,
+            profile_dir=self.args.profile_dir,
         )
 
         run_dir = benchmark_config.get_run_dir()

@@ -1,7 +1,7 @@
 import time
 from typing import Dict
 
-from etalon.config import DeadlineConfig, MetricsConfig
+from etalon.config import DeadlineConfig, MetricsConfig, PrefillProfilerConfig
 from etalon.metrics.metric_store import MetricStore
 from etalon.metrics.request_metrics import RequestMetrics
 
@@ -13,6 +13,7 @@ class ServiceMetrics:
         max_requests: int,
         deadline_config: DeadlineConfig,
         metrics_config: MetricsConfig,
+        prefill_profiler_config: PrefillProfilerConfig,
     ) -> None:
         self.timeout = timeout
         self.max_requests = max_requests
@@ -25,6 +26,7 @@ class ServiceMetrics:
             max_requests=max_requests,
             deadline_config=deadline_config,
             metrics_config=metrics_config,
+            prefill_profiler_config=prefill_profiler_config,
         )
 
     @property

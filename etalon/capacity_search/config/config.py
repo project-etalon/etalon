@@ -202,6 +202,7 @@ class RequestConfig:
             "trace_request_length_generator_config_max_tokens": self.request_generator_max_tokens,
             "zipf_request_length_generator_config_max_tokens": self.request_generator_max_tokens,
             "uniform_request_length_generator_config_max_tokens": self.request_generator_max_tokens,
+            "fixed_request_length_generator_config_max_tokens": self.request_generator_max_tokens,
         }
 
     def to_args(self):
@@ -353,10 +354,13 @@ class BenchmarkConfig:
     should_use_given_dir: Optional[bool] = True
     ttft_deadline: Optional[float] = None
     tbt_deadline: Optional[float] = None
+    ttft_slack: Optional[float] = None
     wandb_group: Optional[str] = None
     wandb_project: Optional[str] = None
     wandb_run_name: Optional[str] = None
     should_write_metrics: Optional[bool] = True
+    use_predictions_for_ttft: Optional[bool] = False
+    predictor_dir: Optional[str] = None
 
     def to_config_dict(self):
         return {
@@ -366,10 +370,13 @@ class BenchmarkConfig:
             "metrics_config_should_use_given_dir": self.should_use_given_dir,
             "deadline_config_ttft_deadline": self.ttft_deadline,
             "deadline_config_tbt_deadline": self.tbt_deadline,
+            "deadline_config_ttft_slack": self.ttft_slack,
             "metrics_config_wandb_group": self.wandb_group,
             "metrics_config_wandb_project": self.wandb_project,
             "metrics_config_wandb_run_name": self.wandb_run_name,
             "metrics_config_should_write_metrics": self.should_write_metrics,
+            "prefill_profiler_config_use_predictions_for_ttft": self.use_predictions_for_ttft,
+            "prefill_profiler_config_predictor_dir": self.predictor_dir,
         }
 
     def to_args(self):

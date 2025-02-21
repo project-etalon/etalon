@@ -3,14 +3,20 @@ import os
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
+import numpy as np
 import re
-from typing import List, Optional
+from typing import List
+
+import joblib
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import PolynomialFeatures
 
 from etalon.config.base_poly_config import BasePolyConfig
 from etalon.config.flat_dataclass import create_flat_dataclass
 from etalon.config.utils import dataclass_to_dict
 from etalon.core.llm_clients import SUPPORTED_APIS
 from etalon.logger import init_logger
+from etalon.constants import PREFILL_POLYNOMIAL_DEGREE
 from etalon.types import (
     RequestIntervalGeneratorType,
     RequestLengthGeneratorType,
@@ -89,6 +95,9 @@ class BaseRequestLengthGeneratorConfig(BasePolyConfig):
     seed: int = field(
         default=42, metadata={"help": "Random seed for the request length generator."}
     )
+    max_tokens: int = field(
+        default=4096, metadata={"help": "Maximum number of tokens allowed."}
+    )
 
 
 @dataclass
@@ -102,9 +111,6 @@ class TraceRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
     )
     decode_scale_factor: float = field(
         default=1, metadata={"help": "Scale factor for decode tokens."}
-    )
-    max_tokens: int = field(
-        default=4096, metadata={"help": "Maximum number of tokens allowed."}
     )
 
     @staticmethod
@@ -123,9 +129,6 @@ class ZipfRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
     min_tokens: int = field(
         default=1024, metadata={"help": "Minimum number of tokens."}
     )
-    max_tokens: int = field(
-        default=4096, metadata={"help": "Maximum number of tokens."}
-    )
     prefill_to_decode_ratio: float = field(
         default=20.0, metadata={"help": "Ratio of prefill tokens to decode tokens."}
     )
@@ -139,9 +142,6 @@ class ZipfRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
 class UniformRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
     min_tokens: int = field(
         default=1024, metadata={"help": "Minimum number of tokens."}
-    )
-    max_tokens: int = field(
-        default=4096, metadata={"help": "Maximum number of tokens."}
     )
     prefill_to_decode_ratio: float = field(
         default=20.0, metadata={"help": "Ratio of prefill tokens to decode tokens."}
@@ -295,6 +295,10 @@ class DeadlineConfig:
         default=0.1,
         metadata={"help": "The target deadline miss rate."},
     )
+    ttft_slack: float = field(
+        default=0.0,
+        metadata={"help": "The slack for time to first token. Only used if use_predictions_for_ttft is True."},
+    )
 
 
 @dataclass
@@ -303,7 +307,63 @@ class PrefillProfilerConfig:
         default_factory=lambda: [],
         metadata={"help": "The lengths to prefill the profiler with."},
     )
+    cache_predictions: bool = field(
+        default=True,
+        metadata={"help": "Whether to cache the predictions for the prefill profiler."},
+    )
+    use_predictions_for_ttft: bool = field(
+        default=False,
+        metadata={"help": "Whether to use the predictions from the prefill profiler."},
+    )
+    max_prefill_tokens_to_predict: int = field(
+        default=int(2**20),
+        metadata={"help": "The maximum number of tokens to predict for the prefill profiler."},
+    )
+    predictor_dir: str = field(
+        default="",
+        metadata={"help": "The path to directory of prefill predictor."},
+    )
 
+    def do_predictions(self, start_token_count=1):
+        model_path = os.path.join(self.predictor_dir, "prefill_predictor.pkl")
+
+        if not os.path.exists(model_path):
+            logger.error(f"Predictor not found at {model_path}. Exiting.")
+            return
+
+        model: RandomForestRegressor = joblib.load(model_path)
+        transformer = PolynomialFeatures(
+            degree=PREFILL_POLYNOMIAL_DEGREE, include_bias=False
+        )
+        x = np.arange(start=start_token_count, stop=self.max_prefill_tokens_to_predict + 1).reshape(-1, 1)
+        x_poly = transformer.fit_transform(x)
+        y = model.predict(x_poly)
+        for i in range(len(x)):
+            self.predictions[int(x[i][0])] = y[i]
+    
+    def save_predictions(self):
+        """Save the predictions to a file to same directory for future use."""
+        predictions_path = os.path.join(self.predictor_dir, "prefill_predictions.pkl")
+        joblib.dump(self.predictions, predictions_path)
+    
+    def __post_init__(self):
+        if self.use_predictions_for_ttft:
+            self.predictions = {}
+
+    def fill_predictions_array(self):
+        assert self.use_predictions_for_ttft, "Predictions should be used for TTFT to fill predictions array."
+        assert self.predictor_dir, "Predictor path must be provided if use_predictions is True."
+        predictions_path = os.path.join(self.predictor_dir, "prefill_predictions.pkl")
+        if os.path.exists(predictions_path):
+            self.predictions = joblib.load(predictions_path)
+            if len(self.predictions) < self.max_prefill_tokens_to_predict:
+                logger.warning(f"Predictions found at {predictions_path} but not enough predictions found. Loading predictor and predicting more tokens.")
+                self.do_predictions()
+                self.save_predictions()
+        else:
+            logger.warning(f"Predictions not found at {predictions_path}. Loading predictor and predicting.")
+            self.do_predictions()
+            self.save_predictions()
 
 @dataclass
 class BenchmarkConfig(ABC):
@@ -368,8 +428,13 @@ class BenchmarkConfig(ABC):
         else:
             self.client_config.additional_sampling_params = {}
         
+        if self.prefill_profiler_config.use_predictions_for_ttft:
+            self.prefill_profiler_config.max_prefill_tokens_to_predict = max(
+                self.prefill_profiler_config.max_prefill_tokens_to_predict, self.request_length_generator_config.max_tokens
+            )
+            self.prefill_profiler_config.fill_predictions_array()
+
         self.write_config_to_file()
-    
 
     @classmethod
     def create_from_cli_args(cls):

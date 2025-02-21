@@ -7,7 +7,7 @@ import pandas as pd
 import plotly_express as px
 import wandb
 
-from etalon.config import DeadlineConfig, MetricsConfig
+from etalon.config import DeadlineConfig, MetricsConfig, PrefillProfilerConfig
 from etalon.logger import init_logger
 from etalon.metrics.cdf_sketch import CDFSketch
 from etalon.metrics.metric_utils import (
@@ -33,6 +33,7 @@ class MetricStore:
         max_requests: int,
         deadline_config: DeadlineConfig,
         metrics_config: MetricsConfig,
+        prefill_profiler_config: PrefillProfilerConfig,
     ) -> None:
         self.timeout = timeout
         self.max_requests = max_requests
@@ -46,6 +47,7 @@ class MetricStore:
         self.ttft_deadline = deadline_config.ttft_deadline
         self.tbt_deadline = deadline_config.tbt_deadline
         self.target_deadline_miss_rate = deadline_config.target_deadline_miss_rate
+        self.ttft_slack = deadline_config.ttft_slack
         self.service_level_missed_deadlines = 0
         self.service_level_total_deadlines = 0
         self.should_write_metrics = metrics_config.should_write_metrics
@@ -53,8 +55,12 @@ class MetricStore:
         self.wandb_group = metrics_config.wandb_group
         self.wandb_run_name = metrics_config.wandb_run_name
 
+        self.prefill_predictions = prefill_profiler_config.predictions
+        self.use_predictions_for_ttft = prefill_profiler_config.use_predictions_for_ttft
+
         self.request_level_metrics = RequestLevelMetrics(
-            deadline_config=deadline_config
+            deadline_config=deadline_config,
+            prefill_profiler_config=prefill_profiler_config,
         )
 
         self.summaries: Dict[str, CDFSketch] = {
@@ -80,7 +86,7 @@ class MetricStore:
                 "Output Throughput", self.should_write_metrics
             ),
             "deadline_miss_rate": CDFSketch(
-                f"Deadline Miss Rate with {self.tbt_deadline}s TBT Deadline, {self.ttft_deadline}s TTFT Deadline",
+                f"Deadline Miss Rate with {self.tbt_deadline}s TBT Deadline, {self.ttft_deadline}s TTFT Deadline, {self.ttft_slack}s TTFT Slack, Using Predictions for TTFT: {self.use_predictions_for_ttft} ",
                 self.should_write_metrics,
             ),
             "min_tbt_deadline_to_meet": CDFSketch(
@@ -105,6 +111,8 @@ class MetricStore:
                 "max_requests": self.max_requests,
                 "ttft_deadline": self.ttft_deadline,
                 "tbt_deadline": self.tbt_deadline,
+                "ttft_slack": self.ttft_slack,
+                "using_predictions_for_ttft": self.use_predictions_for_ttft,
                 "target_deadline_miss_rate": self.target_deadline_miss_rate,
             },
         )
@@ -128,13 +136,19 @@ class MetricStore:
             if metric_name == "tbt":
                 cdf_sketch.extend(request_metrics.inter_token_times[1:])
             elif metric_name == "deadline_miss_rate":
+                ttft_deadline = self.ttft_deadline
+                if self.use_predictions_for_ttft:
+                    ttft_deadline = (
+                        self.prefill_predictions[request_metrics.num_total_tokens]
+                        + self.ttft_slack
+                    )
                 (
                     deadline_miss_rate,
                     missed_deadlines,
                     total_deadlines,
                 ) = get_request_level_deadline_miss_rate(
                     inter_token_times=request_metrics.inter_token_times,
-                    ttft_deadline=self.ttft_deadline,
+                    ttft_deadline=ttft_deadline,
                     tbt_deadline=self.tbt_deadline,
                 )
                 cdf_sketch.put(deadline_miss_rate)
@@ -144,7 +158,7 @@ class MetricStore:
                 cdf_sketch.put(
                     find_min_tbt_deadline_to_meet(
                         inter_token_times=request_metrics.inter_token_times,
-                        ttft_deadline=self.ttft_deadline,
+                        ttft_deadline=ttft_deadline,
                         target_deadline_miss_rate=self.target_deadline_miss_rate,
                     )
                 )

@@ -237,6 +237,7 @@ def run_benchmark(
         timeout=benchmark_config.timeout,
         deadline_config=benchmark_config.deadline_config,
         metrics_config=benchmark_config.metrics_config,
+        prefill_profiler_config=benchmark_config.prefill_profiler_config,
     )
 
     generated_texts = []

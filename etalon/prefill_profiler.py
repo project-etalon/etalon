@@ -11,30 +11,11 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import PolynomialFeatures
 
 from etalon.config import BenchmarkConfig, FixedRequestLengthGeneratorConfig, StaticRequestIntervalGeneratorConfig
+from etalon.constants import *
 from etalon.logger import init_logger
 from etalon.run_benchmark import run_benchmark
 
 logger = init_logger(__name__)
-
-# Prefill lengths profile over, all powers of 2 between 256 and 128K
-PREFILL_VALUES = [2**i for i in range(8, 15)]
-# Model to train on the prefill values and prefill times
-PREFILL_MODEL = "RandomForestRegressor"
-# Random Forest Regressor parameters
-PREFILL_RANDOM_FOREST_PARAMS = {
-    "n_estimators": 10,
-    "random_state": 0,
-}
-# Polynomial degree for the prefill time predictor
-PREFILL_POLYNOMIAL_DEGREE = 2
-# RMSE threshold for the prefill time predictor
-PREFILL_RMSE_THRESHOLD = 0.05
-# Number of Ray clients to use for prefill profiling
-PREFILL_NUM_CLIENTS = 1
-# Number of concurrent requests per client for prefill profiling
-PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT = 1
-# Number of completed requests to wait for before stopping the prefill profiling for a prompt length
-PREFILL_MAX_NUM_COMPLETED_REQUESTS = 1
 
 
 class PrefillProfiler:
@@ -210,6 +191,20 @@ class PrefillProfiler:
             )
 
         # assert rmse < PREFILL_RMSE_THRESHOLD, "Model's RMSE is too high, consider changing the model or the data"
+
+        if self.config.prefill_profiler_config.cache_predictions:
+            predictions = {}
+
+            x = np.arange(self.config.prefill_profiler_config.max_prefill_tokens_to_predict+1)
+            x = x.reshape(-1, 1)
+            x_poly = self.transformer.fit_transform(x)
+            y = self.model.predict(x_poly)
+            for i in range(len(x)):
+                predictions[int(x[i][0])] = y[i]
+
+            joblib.dump(
+                predictions, os.path.join(self.config.metrics_config.output_dir, "prefill_predictions.pkl")
+            )
 
 
 if __name__ == "__main__":

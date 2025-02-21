@@ -100,7 +100,7 @@ def setup():
         args.wandb_sweep_id = sweep_id
         # required so that wandb doesn't delay flush of child logs
         wandb.finish(quiet=True)
-    
+
     return args, config
 
 

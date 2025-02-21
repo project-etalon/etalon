@@ -42,7 +42,6 @@ def setup_api_environment(
         os.environ["OPENAI_API_BASE"] = f"http://localhost:{openai_port}/v1"
 
 
-
 def run(
     job_config: JobConfig,
     benchmark_config: BenchmarkConfig,

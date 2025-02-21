@@ -1,9 +1,9 @@
 import os
 import random
-import time
 import threading
-from queue import Empty
+import time
 from multiprocessing import Queue
+from queue import Empty
 from threading import Thread
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -96,7 +96,7 @@ def dispatch_requests(
             # Check if we should handle error request
             if service_metrics.num_requests >= service_metrics.max_requests:
                 num_errored_requests_handled += 1
-            
+
             # Create and dispatch request
             service_metrics.register_launched_request()
             request_config = get_request_params(
@@ -109,7 +109,9 @@ def dispatch_requests(
             input_queue.put(request_config)
 
             # Wait for next interval
-            next_request_interval = requests_interval_generator.get_next_inter_request_time()
+            next_request_interval = (
+                requests_interval_generator.get_next_inter_request_time()
+            )
             while not stop_event.is_set():
                 if time.monotonic() - request_start_time >= next_request_interval:
                     break
@@ -133,7 +135,7 @@ def process_results(
             if generated_text:
                 service_metrics.add_request_metrics(request_metrics)
                 generated_texts.append(generated_text)
-            
+
             pbar.update(service_metrics.num_completed_requests - pbar.n)
         except Empty:
             continue
@@ -276,9 +278,11 @@ def run_benchmark(
     logger.info(f"Metrics stored to {service_metrics.output_dir}")
 
     # store the generated texts
-    with open(os.path.join(service_metrics.output_dir, "generated_texts.txt"), "w") as f:
+    with open(
+        os.path.join(service_metrics.output_dir, "generated_texts.txt"), "w"
+    ) as f:
         f.write(("\n" + "-" * 30 + "\n").join(generated_texts))
-    
+
     os._exit(0)
 
 

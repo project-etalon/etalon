@@ -1,26 +1,26 @@
 import json
 import os
+import re
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
-import numpy as np
-import re
 from typing import List
 
 import joblib
+import numpy as np
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import PolynomialFeatures
 
 from etalon.config.base_poly_config import BasePolyConfig
 from etalon.config.flat_dataclass import create_flat_dataclass
 from etalon.config.utils import dataclass_to_dict
+from etalon.constants import PREFILL_POLYNOMIAL_DEGREE
 from etalon.core.llm_clients import SUPPORTED_APIS
 from etalon.logger import init_logger
-from etalon.constants import PREFILL_POLYNOMIAL_DEGREE
 from etalon.types import (
+    RequestGeneratorType,
     RequestIntervalGeneratorType,
     RequestLengthGeneratorType,
-    RequestGeneratorType,
 )
 
 logger = init_logger(__name__)
@@ -228,7 +228,9 @@ class ClientConfig:
     )
     tokenizer: str = field(
         default=None,
-        metadata={"help": "The tokenizer to use for this load test. By default, the tokenizer is inferred from the model."},
+        metadata={
+            "help": "The tokenizer to use for this load test. By default, the tokenizer is inferred from the model."
+        },
     )
     num_clients: int = field(
         default=2,
@@ -240,12 +242,16 @@ class ClientConfig:
     )
     additional_sampling_params: str = field(
         default="{}",
-        metadata={"help": "Additional sampling params to send with the each request to the LLM API. "
-            "By default, no additional sampling params are sent."},
+        metadata={
+            "help": "Additional sampling params to send with the each request to the LLM API. "
+            "By default, no additional sampling params are sent."
+        },
     )
     llm_api: str = field(
         default="openai",
-        metadata={"help": f"The name of the llm api to use. Can select from {SUPPORTED_APIS}"},
+        metadata={
+            "help": f"The name of the llm api to use. Can select from {SUPPORTED_APIS}"
+        },
     )
     address_append_value: str = field(
         default="chat/completions",
@@ -261,7 +267,9 @@ class MetricsConfig:
     )
     should_use_given_dir: bool = field(
         default=True,
-        metadata={"help": "Whether to add directly use output_dir directory or create new directories for the results."},
+        metadata={
+            "help": "Whether to add directly use output_dir directory or create new directories for the results."
+        },
     )
     should_write_metrics: bool = field(
         default=False,
@@ -297,7 +305,9 @@ class DeadlineConfig:
     )
     ttft_slack: float = field(
         default=0.0,
-        metadata={"help": "The slack for time to first token. Only used if use_predictions_for_ttft is True."},
+        metadata={
+            "help": "The slack for time to first token. Only used if use_predictions_for_ttft is True."
+        },
     )
 
 
@@ -317,7 +327,9 @@ class PrefillProfilerConfig:
     )
     max_prefill_tokens_to_predict: int = field(
         default=int(2**20),
-        metadata={"help": "The maximum number of tokens to predict for the prefill profiler."},
+        metadata={
+            "help": "The maximum number of tokens to predict for the prefill profiler."
+        },
     )
     predictor_dir: str = field(
         default="",
@@ -335,35 +347,46 @@ class PrefillProfilerConfig:
         transformer = PolynomialFeatures(
             degree=PREFILL_POLYNOMIAL_DEGREE, include_bias=False
         )
-        x = np.arange(start=start_token_count, stop=self.max_prefill_tokens_to_predict + 1).reshape(-1, 1)
+        x = np.arange(
+            start=start_token_count, stop=self.max_prefill_tokens_to_predict + 1
+        ).reshape(-1, 1)
         x_poly = transformer.fit_transform(x)
         y = model.predict(x_poly)
         for i in range(len(x)):
             self.predictions[int(x[i][0])] = y[i]
-    
+
     def save_predictions(self):
         """Save the predictions to a file to same directory for future use."""
         predictions_path = os.path.join(self.predictor_dir, "prefill_predictions.pkl")
         joblib.dump(self.predictions, predictions_path)
-    
+
     def __post_init__(self):
         if self.use_predictions_for_ttft:
             self.predictions = {}
 
     def fill_predictions_array(self):
-        assert self.use_predictions_for_ttft, "Predictions should be used for TTFT to fill predictions array."
-        assert self.predictor_dir, "Predictor path must be provided if use_predictions is True."
+        assert (
+            self.use_predictions_for_ttft
+        ), "Predictions should be used for TTFT to fill predictions array."
+        assert (
+            self.predictor_dir
+        ), "Predictor path must be provided if use_predictions is True."
         predictions_path = os.path.join(self.predictor_dir, "prefill_predictions.pkl")
         if os.path.exists(predictions_path):
             self.predictions = joblib.load(predictions_path)
             if len(self.predictions) < self.max_prefill_tokens_to_predict:
-                logger.warning(f"Predictions found at {predictions_path} but not enough predictions found. Loading predictor and predicting more tokens.")
+                logger.warning(
+                    f"Predictions found at {predictions_path} but not enough predictions found. Loading predictor and predicting more tokens."
+                )
                 self.do_predictions()
                 self.save_predictions()
         else:
-            logger.warning(f"Predictions not found at {predictions_path}. Loading predictor and predicting.")
+            logger.warning(
+                f"Predictions not found at {predictions_path}. Loading predictor and predicting."
+            )
             self.do_predictions()
             self.save_predictions()
+
 
 @dataclass
 class BenchmarkConfig(ABC):
@@ -377,8 +400,10 @@ class BenchmarkConfig(ABC):
     )
     max_completed_requests: int = field(
         default=10,
-        metadata={"help": "The number of requests to complete before finishing the test. Note "
-                  "that its possible for the test to timeout first."},
+        metadata={
+            "help": "The number of requests to complete before finishing the test. Note "
+            "that its possible for the test to timeout first."
+        },
     )
     timestamp: str = field(
         default_factory=lambda: datetime.now().strftime("%Y-%m-%d-%H-%M-%S"),
@@ -402,35 +427,41 @@ class BenchmarkConfig(ABC):
     )
     request_interval_generator_config: BaseRequestIntervalGeneratorConfig = field(
         default_factory=TraceRequestIntervalGeneratorConfig,
-        metadata={"help": "The request interval generator configuration for the benchmark."},
+        metadata={
+            "help": "The request interval generator configuration for the benchmark."
+        },
     )
     request_length_generator_config: BaseRequestLengthGeneratorConfig = field(
         default_factory=TraceRequestLengthGeneratorConfig,
-        metadata={"help": "The request length generator configuration for the benchmark."},
+        metadata={
+            "help": "The request length generator configuration for the benchmark."
+        },
     )
 
     def __post_init__(self):
         if self.tokenizer is None:
             self.tokenizer = self.model
-        
+
         if not self.metrics_config.should_use_given_dir:
             benchmark_identifier = f"{self.model}_{self.request_interval_generator_config.get_type()}_{self.request_length_generator_config.get_type()}"
             benchmark_identifier = re.sub(r"[^\w\d-]+", "-", benchmark_identifier)
             benchmark_identifier = re.sub(r"-{2,}", "-", benchmark_identifier)
 
             self.metrics_config.output_dir = os.path.join(
-                self.metrics_config.output_dir,
-                benchmark_identifier,
-                self.timestamp)
+                self.metrics_config.output_dir, benchmark_identifier, self.timestamp
+            )
 
         if self.client_config.additional_sampling_params:
-            self.client_config.additional_sampling_params = json.loads(self.client_config.additional_sampling_params)
+            self.client_config.additional_sampling_params = json.loads(
+                self.client_config.additional_sampling_params
+            )
         else:
             self.client_config.additional_sampling_params = {}
-        
+
         if self.prefill_profiler_config.use_predictions_for_ttft:
             self.prefill_profiler_config.max_prefill_tokens_to_predict = max(
-                self.prefill_profiler_config.max_prefill_tokens_to_predict, self.request_length_generator_config.max_tokens
+                self.prefill_profiler_config.max_prefill_tokens_to_predict,
+                self.request_length_generator_config.max_tokens,
             )
             self.prefill_profiler_config.fill_predictions_array()
 
@@ -449,7 +480,7 @@ class BenchmarkConfig(ABC):
             return self.__dict__
 
         return self.__flat_config__.__dict__
-        
+
     def write_config_to_file(self):
         config_dict = dataclass_to_dict(self)
         with open(f"{self.metrics_config.output_dir}/config.json", "w") as f:

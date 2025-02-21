@@ -10,7 +10,11 @@ import wandb
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import PolynomialFeatures
 
-from etalon.config import BenchmarkConfig, FixedRequestLengthGeneratorConfig, StaticRequestIntervalGeneratorConfig
+from etalon.config import (
+    BenchmarkConfig,
+    FixedRequestLengthGeneratorConfig,
+    StaticRequestIntervalGeneratorConfig,
+)
 from etalon.constants import *
 from etalon.logger import init_logger
 from etalon.run_benchmark import run_benchmark
@@ -39,12 +43,18 @@ class PrefillProfiler:
             raise NotImplementedError(f"Model {PREFILL_MODEL} is not implemented")
 
         # update the config with some fixed constants
-        self.config.request_interval_generator_config = StaticRequestIntervalGeneratorConfig()
+        self.config.request_interval_generator_config = (
+            StaticRequestIntervalGeneratorConfig()
+        )
         self.config.metrics_config.should_write_metrics = False
         self.config.client_config.num_clients = PREFILL_NUM_CLIENTS
-        self.config.client_config.num_concurrent_requests_per_client = PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT
+        self.config.client_config.num_concurrent_requests_per_client = (
+            PREFILL_NUM_CONCURRENT_REQUESTS_PER_CLIENT
+        )
         self.config.max_completed_requests = PREFILL_MAX_NUM_COMPLETED_REQUESTS
-        self.config.request_length_generator_config = FixedRequestLengthGeneratorConfig()
+        self.config.request_length_generator_config = (
+            FixedRequestLengthGeneratorConfig()
+        )
 
     def _get_result_file(self, run_dir: str) -> str:
         files = glob.glob(os.path.join(run_dir, f"request_level_metrics.json"))
@@ -57,12 +67,17 @@ class PrefillProfiler:
         for prefill_value in self.prefill_values:
             self.config.request_length_generator_config.prefill_tokens = prefill_value
             run_dir = os.path.join(
-                self.config.metrics_config.output_dir, f"{self.config.client_config.model}_{prefill_value}"
+                self.config.metrics_config.output_dir,
+                f"{self.config.client_config.model}_{prefill_value}",
             )
             if os.path.isdir(run_dir):
-                logger.info(f"Skipping profiling for prefill value = {prefill_value}...")
+                logger.info(
+                    f"Skipping profiling for prefill value = {prefill_value}..."
+                )
             else:
-                self.config.metrics_config.wandb_run_name = f"prefill_p{prefill_value}_{self.config.client_config.model}"
+                self.config.metrics_config.wandb_run_name = (
+                    f"prefill_p{prefill_value}_{self.config.client_config.model}"
+                )
                 self.config.metrics_config.output_dir = run_dir
                 os.makedirs(run_dir, exist_ok=True)
                 logger.info(f"Running profiling for prefill value = {prefill_value}...")
@@ -89,7 +104,9 @@ class PrefillProfiler:
                     )
                     self.prefill_times.append(min(ttft))
             else:
-                logger.error(f"Could not find the result file {json_file} for {run_dir}")
+                logger.error(
+                    f"Could not find the result file {json_file} for {run_dir}"
+                )
                 exit()
             logger.info(f"Going to the next prefill value")
 
@@ -112,7 +129,10 @@ class PrefillProfiler:
         )
 
         joblib.dump(
-            self.model, os.path.join(self.config.metrics_config.output_dir, "prefill_predictor.pkl")
+            self.model,
+            os.path.join(
+                self.config.metrics_config.output_dir, "prefill_predictor.pkl"
+            ),
         )
 
         # also plot the curve containing model's predictions and actual outputs, and dump it
@@ -126,7 +146,11 @@ class PrefillProfiler:
         plt.ylabel("Prefill Time")
         plt.title(self.config.client_config.model)
         plt.legend()
-        plt.savefig(os.path.join(self.config.metrics_config.output_dir, "prefill_predictions.png"))
+        plt.savefig(
+            os.path.join(
+                self.config.metrics_config.output_dir, "prefill_predictions.png"
+            )
+        )
 
         # also do fine-grained plotting
         fine_grained_prefill_values = np.linspace(
@@ -148,12 +172,18 @@ class PrefillProfiler:
         plt.title(self.config.client_config.model)
         plt.legend()
         plt.savefig(
-            os.path.join(self.config.metrics_config.output_dir, "fine_grained_prefill_predictions.png")
+            os.path.join(
+                self.config.metrics_config.output_dir,
+                "fine_grained_prefill_predictions.png",
+            )
         )
 
         plt.close()
 
-        if self.config.metrics_config.wandb_project and self.config.metrics_config.should_write_metrics:
+        if (
+            self.config.metrics_config.wandb_project
+            and self.config.metrics_config.should_write_metrics
+        ):
             wandb.init(
                 project=self.config.metrics_config.wandb_project,
                 group=self.config.metrics_config.wandb_group,
@@ -195,7 +225,9 @@ class PrefillProfiler:
         if self.config.prefill_profiler_config.cache_predictions:
             predictions = {}
 
-            x = np.arange(self.config.prefill_profiler_config.max_prefill_tokens_to_predict+1)
+            x = np.arange(
+                self.config.prefill_profiler_config.max_prefill_tokens_to_predict + 1
+            )
             x = x.reshape(-1, 1)
             x_poly = self.transformer.fit_transform(x)
             y = self.model.predict(x_poly)
@@ -203,7 +235,10 @@ class PrefillProfiler:
                 predictions[int(x[i][0])] = y[i]
 
             joblib.dump(
-                predictions, os.path.join(self.config.metrics_config.output_dir, "prefill_predictions.pkl")
+                predictions,
+                os.path.join(
+                    self.config.metrics_config.output_dir, "prefill_predictions.pkl"
+                ),
             )
 
 

@@ -1,5 +1,5 @@
-from threading import Thread, Lock
 from multiprocessing import Queue as MPQueue
+from threading import Lock, Thread
 
 from etalon.config import ClientConfig
 from etalon.core.llm_clients import construct_client

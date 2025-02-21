@@ -1,7 +1,5 @@
-from multiprocessing import (
-    Process,
-    Queue as MPQueue,
-)
+from multiprocessing import Process
+from multiprocessing import Queue as MPQueue
 
 from etalon.config import ClientConfig
 from etalon.core.requests_manager import RequestsManager
@@ -47,7 +45,10 @@ class RequestsLauncher:
     def complete_tasks(self) -> None:
         """Complete the clients."""
         # put None to indicate that client should stop
-        for _ in range(self.client_config.num_clients * self.client_config.num_concurrent_requests_per_client):
+        for _ in range(
+            self.client_config.num_clients
+            * self.client_config.num_concurrent_requests_per_client
+        ):
             self.input_queue.put(None)
 
         for client in self.clients:

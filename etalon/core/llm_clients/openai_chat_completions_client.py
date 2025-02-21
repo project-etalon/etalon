@@ -1,8 +1,9 @@
 import json
 import os
 import time
-import requests
 from typing import List, Tuple
+
+import requests
 
 from etalon.core.llm_clients.base_llm_client import BaseLLMClient
 from etalon.core.request_config import RequestConfig

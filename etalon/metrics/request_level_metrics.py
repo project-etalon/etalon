@@ -22,7 +22,9 @@ class RequestLevelMetrics:
     ) -> None:
         self.ttft_deadline: float = deadline_config.ttft_deadline
         self.tbt_deadline: float = deadline_config.tbt_deadline
-        self.target_deadline_miss_rate: float = deadline_config.target_deadline_miss_rate
+        self.target_deadline_miss_rate: float = (
+            deadline_config.target_deadline_miss_rate
+        )
         self.ttft_slack: float = deadline_config.ttft_slack
 
         self.prefill_predictions = prefill_profiler_config.predictions
@@ -56,7 +58,10 @@ class RequestLevelMetrics:
         ttft_deadline = self.ttft_deadline
 
         if self.use_predictions_for_ttft:
-            ttft_deadline = self.prefill_predictions[request_metrics.num_total_tokens] + self.ttft_slack
+            ttft_deadline = (
+                self.prefill_predictions[request_metrics.num_total_tokens]
+                + self.ttft_slack
+            )
 
         deadline_miss_rate, _, _ = get_request_level_deadline_miss_rate(
             inter_token_times=request_metrics.inter_token_times,

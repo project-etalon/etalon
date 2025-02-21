@@ -253,7 +253,8 @@ temp*
 experiment*
 wandb/
 prefill_outputs/
-prefill_experiments/
-cap_experiments/
+prefill_experiments*
+cap_experiments*
 experiments/
 experiments_*
+results*

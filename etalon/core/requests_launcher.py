@@ -44,7 +44,7 @@ class RequestsLauncher:
             llm_api=self.client_config.llm_api,
         )
         self.start_threads(client_id=client_id)
-    
+
     def start_threads(self, client_id: int) -> None:
         """Start the threads."""
         client_threads = [
@@ -54,7 +54,7 @@ class RequestsLauncher:
 
         for thread in client_threads:
             thread.start()
-    
+
     def process_requests(self, client_id: int) -> None:
         while True:
             request_config = self.input_queue.get()

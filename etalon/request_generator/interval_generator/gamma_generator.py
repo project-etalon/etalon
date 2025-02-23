@@ -1,5 +1,3 @@
-import random
-
 from scipy.stats import gamma
 
 from etalon.request_generator.interval_generator.base_generator import (

@@ -1,6 +1,5 @@
 import json
 import os
-import time
 from typing import DefaultDict, Dict, Optional
 
 import pandas as pd

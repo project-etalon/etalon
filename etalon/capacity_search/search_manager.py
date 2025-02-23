@@ -1,7 +1,5 @@
 import argparse
 
-import ray
-
 from etalon.capacity_search.capacity_search import CapacitySearch
 from etalon.capacity_search.config.config import JobConfig
 from etalon.logger import init_logger

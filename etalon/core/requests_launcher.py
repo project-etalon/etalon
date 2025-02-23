@@ -1,8 +1,11 @@
 from multiprocessing import Process
 from multiprocessing import Queue as MPQueue
+from threading import Thread
+from typing import Dict
 
 from etalon.config import ClientConfig
-from etalon.core.requests_manager import RequestsManager
+from etalon.core.llm_clients import construct_client
+from etalon.core.llm_clients.base_llm_client import BaseLLMClient
 
 
 class RequestsLauncher:
@@ -15,6 +18,7 @@ class RequestsLauncher:
         output_queue: MPQueue,
     ):
         self.clients = []
+        self.llm_clients: Dict[int, BaseLLMClient] = {}
 
         self.client_config = client_config
         self.input_queue = input_queue
@@ -34,13 +38,30 @@ class RequestsLauncher:
 
     def run_client(self, client_id: int) -> None:
         """Run the client."""
-        requests_manager = RequestsManager(
-            client_id=client_id,
-            client_config=self.client_config,
-            input_queue=self.input_queue,
-            output_queue=self.output_queue,
+        self.llm_clients[client_id] = construct_client(
+            model_name=self.client_config.model,
+            tokenizer_name=self.client_config.tokenizer,
+            llm_api=self.client_config.llm_api,
         )
-        requests_manager.start_tasks()
+        self.start_threads(client_id=client_id)
+    
+    def start_threads(self, client_id: int) -> None:
+        """Start the threads."""
+        client_threads = [
+            Thread(target=self.process_requests, args=(client_id,))
+            for _ in range(self.client_config.num_concurrent_requests_per_client)
+        ]
+
+        for thread in client_threads:
+            thread.start()
+    
+    def process_requests(self, client_id: int) -> None:
+        while True:
+            request_config = self.input_queue.get()
+            if request_config is None:
+                break
+            result = self.llm_clients[client_id].send_llm_request(request_config)
+            self.output_queue.put(result)
 
     def complete_tasks(self) -> None:
         """Complete the clients."""

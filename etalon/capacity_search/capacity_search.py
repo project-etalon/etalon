@@ -4,18 +4,12 @@ import json
 import os
 from typing import Tuple
 
-import joblib
 import numpy as np
 import wandb
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import PolynomialFeatures
 
 from etalon.capacity_search.benchmark_wrapper import run
 from etalon.capacity_search.config.config import BenchmarkConfig, JobConfig, _get_hash
-from etalon.capacity_search.ray_utils import get_ip
 from etalon.logger import init_logger
-from etalon.metrics.metric_utils import get_request_level_deadline_miss_rate
-from etalon.prefill_profiler import PREFILL_POLYNOMIAL_DEGREE
 
 logger = init_logger(__name__)
 
@@ -25,31 +19,14 @@ QPS_INCREASE_SCALE = 2
 VICINITY_THRESHOLD = 0.8
 
 
-def release_resources_on_completion_or_error(func):
-    def wrapper(self, *args, **kwargs):
-        try:
-            return_data = func(self, *args, **kwargs)
-            self.release_resources()
-            return return_data
-        except Exception as e:
-            logger.error(f"Error in search: {e}")
-            self.release_resources()
-
-    return wrapper
-
-
 class CapacitySearch:
     def __init__(
         self,
         job_config: JobConfig,
         args: argparse.Namespace,
     ) -> None:
-        self.node_ip = get_ip()
         self.job_config = job_config
         self.args = args
-
-    def release_resources(self):
-        pass
 
     def _run_benchmark(self, benchmark_config: BenchmarkConfig):
         run(self.job_config, benchmark_config)
@@ -225,7 +202,6 @@ class CapacitySearch:
 
         return self._is_under_sla(request_level_metrics_file, benchmark_config)
 
-    @release_resources_on_completion_or_error
     def search(self):
         """
         Perform binary search to find the maximum QPS under the SLO

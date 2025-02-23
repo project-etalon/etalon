@@ -26,7 +26,6 @@ def num_fixed_qps_values(capacity_search: CapacitySearch):
     ttft_at_max_qps = None
     tpot_at_max_qps = None
     deadline_miss_rate_at_max_qps = None
-    ttft_slo_attainment_rate_at_max_qps = None
     best_run_id = None
     found_valid_qps = False
 
@@ -52,7 +51,6 @@ def num_fixed_qps_values(capacity_search: CapacitySearch):
             ttft_at_max_qps = ttft
             tpot_at_max_qps = tpot
             deadline_miss_rate_at_max_qps = deadline_miss_rate
-            ttft_slo_attainment_rate_at_max_qps = ttft_slo_attainment_rate
             best_run_id = run_id
         else:
             min_qps_over_sla = min(min_qps_over_sla, qps)
@@ -69,7 +67,6 @@ def num_fixed_qps_values(capacity_search: CapacitySearch):
         f"TBT P{capacity_search.args.tbt_percentile * 100}: {tbt_at_max_qps}, "
         f"TTFT P{capacity_search.args.ttft_percentile * 100}: {ttft_at_max_qps}, "
         f"TPOT P{capacity_search.args.tpot_percentile * 100}: {tpot_at_max_qps}, "
-        f"TTFT Multiplier SLO Attainment Rate: {ttft_slo_attainment_rate_at_max_qps}, "
         f"Deadline Miss Rate P{capacity_search.args.deadline_miss_rate_percentile * 100}: {deadline_miss_rate_at_max_qps}"
         f"Best Run ID: {best_run_id}",
     )
@@ -87,7 +84,6 @@ def num_fixed_qps_values(capacity_search: CapacitySearch):
     return {
         **capacity_search.job_config.to_config_dict(),
         "max_qps_under_sla": max_qps_under_sla,
-        "ttft_slo_attainment_rate_at_max_qps": ttft_slo_attainment_rate_at_max_qps,
         "deadline_miss_rate_at_max_qps": deadline_miss_rate_at_max_qps,
     }
 

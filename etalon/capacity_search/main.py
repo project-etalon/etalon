@@ -43,6 +43,7 @@ def get_parser():
     parser.add_argument("--ttft-slack-slo", type=float, default=0.3)
     parser.add_argument("--deadline-miss-rate-slo", type=float, default=0.1)
     parser.add_argument("--deadline-miss-rate-percentile", type=float, default=0.99)
+    parser.add_argument("--dynamic-ttft-slo", type=bool, action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--max-iterations", type=int, default=20)
     parser.add_argument(
         "--time-limit", type=int, default=20, help="Time limit in minutes"

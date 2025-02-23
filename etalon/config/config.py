@@ -371,6 +371,7 @@ class PrefillProfilerConfig:
             self.predictor_dir
         ), "Predictor path must be provided if use_predictions is True."
         predictions_path = os.path.join(self.predictor_dir, "prefill_predictions.pkl")
+        logger.info(f"Getting prefill predictions from path: {predictions_path}")
         if os.path.exists(predictions_path):
             self.predictions = joblib.load(predictions_path)
             if len(self.predictions) < self.max_prefill_tokens_to_predict:

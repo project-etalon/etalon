@@ -160,7 +160,7 @@ def run_main_loop(
         trust_remote_code=True,
     )
 
-    # Create queues for commmunication
+    # Create queues for communication
     input_queue = Queue()
     output_queue = Queue()
     stop_event = threading.Event()

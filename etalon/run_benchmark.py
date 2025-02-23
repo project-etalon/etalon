@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from tqdm import tqdm
 
-from etalon.config import BenchmarkConfig, ClientConfig
+from etalon.config.config import BenchmarkConfig, ClientConfig
 from etalon.core.hf_utils import get_tokenizer
 from etalon.core.request_config import RequestConfig
 from etalon.core.requests_launcher import RequestsLauncher

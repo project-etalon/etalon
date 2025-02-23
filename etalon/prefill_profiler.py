@@ -12,12 +12,12 @@ import wandb
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import PolynomialFeatures
 
-from etalon.config import (
+from etalon.config.config import (
     BenchmarkConfig,
     FixedRequestLengthGeneratorConfig,
     StaticRequestIntervalGeneratorConfig,
 )
-from etalon.constants import *
+from etalon.constants.prefill_constants import *
 from etalon.logger import init_logger
 from etalon.run_benchmark import run_benchmark
 

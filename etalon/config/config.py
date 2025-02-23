@@ -14,7 +14,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from etalon.config.base_poly_config import BasePolyConfig
 from etalon.config.flat_dataclass import create_flat_dataclass
 from etalon.config.utils import dataclass_to_dict
-from etalon.constants import PREFILL_POLYNOMIAL_DEGREE
+from etalon.constants.prefill_constants import PREFILL_POLYNOMIAL_DEGREE
 from etalon.core.llm_clients import SUPPORTED_APIS
 from etalon.logger import init_logger
 from etalon.types import (

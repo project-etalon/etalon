@@ -3,7 +3,7 @@ from multiprocessing import Queue as MPQueue
 from threading import Thread
 from typing import Dict
 
-from etalon.config import ClientConfig
+from etalon.config.config import ClientConfig
 from etalon.core.llm_clients import construct_client
 from etalon.core.llm_clients.base_llm_client import BaseLLMClient
 

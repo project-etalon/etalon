@@ -6,7 +6,7 @@ import pandas as pd
 import plotly_express as px
 import wandb
 
-from etalon.config import DeadlineConfig, MetricsConfig, PrefillProfilerConfig
+from etalon.config.config import DeadlineConfig, MetricsConfig, PrefillProfilerConfig
 from etalon.logger import init_logger
 from etalon.metrics.cdf_sketch import CDFSketch
 from etalon.metrics.metric_utils import (

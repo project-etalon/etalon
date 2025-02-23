@@ -1,7 +1,7 @@
 import time
 from typing import Dict
 
-from etalon.config import DeadlineConfig, MetricsConfig, PrefillProfilerConfig
+from etalon.config.config import DeadlineConfig, MetricsConfig, PrefillProfilerConfig
 from etalon.metrics.metric_store import MetricStore
 from etalon.metrics.request_metrics import RequestMetrics
 

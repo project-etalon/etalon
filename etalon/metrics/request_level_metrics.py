@@ -2,7 +2,7 @@ import json
 import os
 from typing import List
 
-from etalon.config import DeadlineConfig, PrefillProfilerConfig
+from etalon.config.config import DeadlineConfig, PrefillProfilerConfig
 from etalon.metrics.metric_utils import (
     find_min_tbt_deadline_to_meet,
     get_request_level_deadline_miss_rate,

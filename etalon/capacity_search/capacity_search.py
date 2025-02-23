@@ -156,9 +156,18 @@ class CapacitySearch:
 
     def is_under_sla(self, qps: float) -> Tuple[bool, float, float, float, float, str]:
         job_config_key = self.job_config.get_key()
+        slo_key = "slotype{}_tbtslo{}_ttftslo{}_tpotslo{}_ttftslackslo{}_deadlinemissrateslo{}".format(
+            self.args.slo_type,
+            self.args.tbt_slo,
+            self.args.ttft_slo,
+            self.args.tpot_slo,
+            self.args.ttft_slack_slo,
+            self.args.deadline_miss_rate_slo,
+        )
+        overall_key = "_".join([job_config_key, slo_key])
         # since key is very long, hash it to get a unique key for a particular config
         # just check config.json to know actual config
-        hash_key = _get_hash(job_config_key)
+        hash_key = _get_hash(overall_key)
 
         benchmark_config = BenchmarkConfig(
             output_dir=os.path.join(

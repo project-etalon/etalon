@@ -1,3 +1,5 @@
 # For lints
 black
 isort
+autoflake
+codespell

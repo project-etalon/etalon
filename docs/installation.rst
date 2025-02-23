@@ -25,12 +25,6 @@ Install etalon
     cd etalon
     pip install -e .
 
-Optional Dependencies
-^^^^^^^^^^^^^^^^^^^^^
-.. code-block:: shell
-
-    pip install -e ".[vllm]"
-
 .. _huggingface_setup:
 
 Setup Hugging Face

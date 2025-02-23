@@ -1,4 +1,4 @@
-sphinx==7.3.7
-docutils==0.21.2
+sphinx
+docutils
 furo
-sphinx-copybutton==0.5.2
+sphinx-copybutton

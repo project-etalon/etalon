@@ -19,14 +19,14 @@ Running Benchmark
 .. code-block:: shell
 
     python -m etalon.run_benchmark \
-    --model "meta-llama/Meta-Llama-3-8B-Instruct" \
-    --max-num-completed-requests 20 \
-    --request-interval-generator-provider "gamma" \
-    --request-length-generator-provider "zipf" \
-    --request-generator-max-tokens 8192 \
-    --output-dir "results"
+    --client_config_model "meta-llama/Meta-Llama-3-8B-Instruct" \
+    --max_completed_requests 20 \
+    --request_interval_generator_config_type "gamma" \
+    --request_length_generator_config_type "zipf" \
+    --zipf_request_length_generator_config_max_tokens 8192 \
+    --metrics_config_output_dir "results"
 
-Be sure to update ``--model`` flag to the model used in the proprietary system.
+Be sure to update ``--client_config_model`` flag to the model used in the proprietary system.
 
 .. note::
 
@@ -41,16 +41,20 @@ Optionally, you can also specify the following arguments to log results to wandb
 
 .. code-block:: shell
 
-    --should-write-metrics \
-    --wandb-project Project \
-    --wandb-group Group \
-    --wandb-run-name Run
+    --metrics_config_should_write_metrics \
+    --metrics_config_wandb_project Project \
+    --metrics_config_wandb_group Group \
+    --metrics_config_wandb_run_name Run
 
 Other Arguments
 ^^^^^^^^^^^^^^^
-
 There are many more arguments for running benchmark, run the following to know more:
 
 .. code-block:: shell
 
     python -m etalon.run_benchmark -h
+
+
+Saving Results
+~~~~~~~~~~~~~~~
+The results of the benchmark are saved in the results directory specified by the ``--metrics_config_output_dir`` argument.

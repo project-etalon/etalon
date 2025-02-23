@@ -1,7 +1,7 @@
 Prefill Profiler
 ================
 
-To profile prefill times of open source systems and create a prefill time predictor for a given model and open source system combination, based on input prompt length, we can run ``etalon.prefill_profiler``.
+To profile prefill times of open source systems and create a prefill time predictor for a given client_config_model and open source system combination, based on input prompt length, we can run ``etalon.prefill_profiler``.
 
 .. image:: ../_static/assets/yi-prefill-time-curve.png
     :align: center
@@ -16,10 +16,9 @@ And, then run the following command:
 .. code-block:: shell
 
     python -m etalon.prefill_profiler \
-    --model "meta-llama/Meta-Llama-3-8B-Instruct" \
+    --client_config_model "meta-llama/Meta-Llama-3-8B-Instruct" \
     --timeout 600 \
-    --fixed-request-generator-decode-tokens 16 \
-    --output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b"
+    --metrics_config_output_dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b"
 
 Adjusting Prompt Lengths
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -35,9 +34,7 @@ To profile a custom range of prompt lengths, use the flag ``--prefill-lengths`` 
 .. code-block:: shell
 
     python -m etalon.prefill_profiler \
-    --model "meta-llama/Meta-Llama-3-8B-Instruct" \
+    --client_config_model "meta-llama/Meta-Llama-3-8B-Instruct" \
     --timeout 600 \
-    --fixed-request-generator-decode-tokens 16 \
-    --output-dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b" \
-    --prefill-lengths 256 512 1024 2048 4096 8192 16384 32768 65536
-
+    --metrics_config_output_dir "prefill_experiments/prefill_profiler_vllm_llama-3-8b" \
+    --prefill_profiler_config_prefill_lengths 256 512 1024 2048 4096 8192 16384 32768 65536

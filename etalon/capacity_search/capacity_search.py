@@ -27,9 +27,11 @@ class CapacitySearch:
     ) -> None:
         self.job_config = job_config
         self.args = args
-        
+
         if (self.args.slo_type == "deadline") and self.args.dynamic_ttft_slo:
-            assert self.args.profile_dir is not None, "Deadline SLO needs profiled predictions"
+            assert (
+                self.args.profile_dir is not None
+            ), "Deadline SLO needs profiled predictions"
 
     def _run_benchmark(self, benchmark_config: BenchmarkConfig):
         run(self.job_config, benchmark_config)
@@ -189,7 +191,8 @@ class CapacitySearch:
             wandb_group=self.args.wandb_group,
             wandb_run_name=f"qps_{qps}_model_{self.job_config.model_config.name}_engine_{self.job_config.server_config.openai_server_engine}",
             should_write_metrics=self.args.should_write_metrics_to_wandb,
-            use_predictions_for_ttft=(self.args.slo_type == "deadline") and self.args.dynamic_ttft_slo,
+            use_predictions_for_ttft=(self.args.slo_type == "deadline")
+            and self.args.dynamic_ttft_slo,
             predictor_dir=self.args.profile_dir,
         )
 

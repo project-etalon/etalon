@@ -36,8 +36,8 @@ def get_request_level_deadline_miss_rate(
                 total_deadlines += 1
                 continue
             curr_missed_deadlines = (inter_token_time - deadline_slack) // tbt_deadline
-        missed_deadlines += curr_missed_deadlines
-        total_deadlines += curr_missed_deadlines
+        missed_deadlines += int(curr_missed_deadlines)
+        total_deadlines += int(curr_missed_deadlines)
         # reset as we are starting new deadlines for subsequent tokens
         deadline_slack = 0
 
@@ -145,8 +145,8 @@ def get_throughput_metrics(
     tbt_slo = np.array(tbt_slo)
     p99_tbt_slo = np.quantile(tbt_slo, TBT_QUANTILE_FOR_THROUGHPUT)
 
-    tpot_based_throughput = 1 / mean_tpot
-    tbt_based_throughput = 1 / p99_tbt
-    deadline_based_throughput = 1 / p99_tbt_slo
+    tpot_based_throughput = float(1 / mean_tpot)
+    tbt_based_throughput = float(1 / p99_tbt)
+    deadline_based_throughput = float(1 / p99_tbt_slo)
 
     return tpot_based_throughput, tbt_based_throughput, deadline_based_throughput

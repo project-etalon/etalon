@@ -10,8 +10,11 @@ from setuptools import find_packages, setup
 
 def load_module_from_path(module_name, path):
     spec = importlib.util.spec_from_file_location(module_name, path)
+    assert spec is not None, f"Failed to load module from path {path}"
     module = importlib.util.module_from_spec(spec)
+    assert module is not None, f"Failed to load module from spec {spec}"
     sys.modules[module_name] = module
+    assert spec.loader is not None, f"Failed to load module from spec {spec}"
     spec.loader.exec_module(module)
     return module
 

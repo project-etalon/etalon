@@ -55,14 +55,15 @@ class PrefillProfiler:
         ):
             self.prefill_values = self.config.prefill_profiler_config.prefill_lengths
         self.prefill_times = []
-        self.model = None
+        self.model = RandomForestRegressor(
+            n_estimators=PREFILL_RANDOM_FOREST_PARAMS["n_estimators"],
+            random_state=PREFILL_RANDOM_FOREST_PARAMS["random_state"],
+        )
         self.transformer = PolynomialFeatures(
             degree=PREFILL_POLYNOMIAL_DEGREE, include_bias=False
         )
 
-        if PREFILL_MODEL == "RandomForestRegressor":
-            self.model = RandomForestRegressor(**PREFILL_RANDOM_FOREST_PARAMS)
-        else:
+        if PREFILL_MODEL != "RandomForestRegressor":
             raise NotImplementedError(f"Model {PREFILL_MODEL} is not implemented")
 
         # update the config with some fixed constants
@@ -80,7 +81,7 @@ class PrefillProfiler:
         )
         self.base_dir = self.config.metrics_config.output_dir
 
-    def _get_result_file(self, run_dir: str) -> str:
+    def _get_result_file(self, run_dir: str) -> str | None:
         files = glob.glob(os.path.join(run_dir, f"request_level_metrics.json"))
         if len(files) == 0:
             return None
@@ -88,6 +89,10 @@ class PrefillProfiler:
         return files[0]
 
     def run(self):
+        assert isinstance(
+            self.config.request_length_generator_config,
+            FixedRequestLengthGeneratorConfig,
+        ), "Request length generator must be FixedRequestLengthGeneratorConfig"
         for prefill_value in self.prefill_values:
             self.config.request_length_generator_config.prefill_tokens = prefill_value
             run_dir = os.path.join(

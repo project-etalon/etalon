@@ -10,7 +10,7 @@ from .zipf_generator import ZipfRequestLengthGenerator
 class RequestLengthGeneratorRegistry(BaseRegistry):
     @classmethod
     def get_key_from_str(cls, key_str: str) -> RequestLengthGeneratorType:
-        return RequestLengthGeneratorType.from_str(key_str)
+        return RequestLengthGeneratorType.from_str(key_str)  # type: ignore
 
 
 RequestLengthGeneratorRegistry.register(

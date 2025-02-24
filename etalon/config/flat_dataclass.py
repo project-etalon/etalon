@@ -1,18 +1,15 @@
 import json
-from argparse import (
-    ArgumentDefaultsHelpFormatter,
-    ArgumentParser,
-    BooleanOptionalAction,
-)
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
 from collections import defaultdict, deque
-from dataclasses import MISSING, fields, make_dataclass
-from typing import Any, get_args
+from dataclasses import MISSING
+from dataclasses import field as dataclass_field
+from dataclasses import fields, make_dataclass
+from typing import Any, Deque, Dict, List, Set, get_args
 
 from etalon.config.base_poly_config import BasePolyConfig
 from etalon.config.utils import (
     get_all_subclasses,
     get_inner_type,
-    is_bool,
     is_composed_of_primitives,
     is_dict,
     is_list,
@@ -23,16 +20,19 @@ from etalon.config.utils import (
 )
 
 
-def topological_sort(dataclass_dependencies: dict) -> list:
-    in_degree = defaultdict(int)
+def topological_sort(dataclass_dependencies: Dict[Any, Set[Any]]) -> List[Any]:
+    in_degree: Dict[Any, int] = defaultdict(int)
     for cls, dependencies in dataclass_dependencies.items():
+        # Ensure every class is present in in_degree
+        if cls not in in_degree:
+            in_degree[cls] = 0
         for dep in dependencies:
             in_degree[dep] += 1
 
-    zero_in_degree_classes = deque(
-        [cls for cls in dataclass_dependencies if in_degree[cls] == 0]
+    zero_in_degree_classes: Deque[Any] = deque(
+        [cls for cls in in_degree if in_degree[cls] == 0]
     )
-    sorted_classes = []
+    sorted_classes: List[Any] = []
 
     while zero_in_degree_classes:
         cls = zero_in_degree_classes.popleft()
@@ -41,51 +41,43 @@ def topological_sort(dataclass_dependencies: dict) -> list:
             in_degree[dep] -= 1
             if in_degree[dep] == 0:
                 zero_in_degree_classes.append(dep)
-
     return sorted_classes
 
 
-def reconstruct_original_dataclass(self) -> Any:
+def _reconstruct_original_dataclass(self) -> Any:
     """
     This function is dynamically mapped to FlatClass as an instance method.
     """
     sorted_classes = topological_sort(self.dataclass_dependencies)
-    instances = {}
+    instances: Dict[Any, Any] = {}
 
     for _cls in reversed(sorted_classes):
-        args = {}
+        args: Dict[str, Any] = {}
 
         for prefixed_field_name, original_field_name, field_type in self.dataclass_args[
             _cls
         ]:
             if is_subclass(field_type, BasePolyConfig):
-                config_type = getattr(self, f"{original_field_name}_type")
+                config_type = (
+                    getattr(self, f"{original_field_name}_type").strip('"').upper()
+                )
                 # find all subclasses of field_type and check which one matches the config_type
-                config_type_matched = False
                 for subclass in get_all_subclasses(field_type):
-                    if str(subclass.get_type()) == config_type:
-                        config_type_matched = True
+                    subclass_type = subclass.get_type().value.upper()
+                    if subclass_type == config_type:
                         args[original_field_name] = instances[subclass]
                         break
-                assert (
-                    config_type_matched
-                ), f"Invalid type {config_type} for {prefixed_field_name}_type. Valid types: {[str(subclass.get_type()) for subclass in get_all_subclasses(field_type)]}"
             elif hasattr(field_type, "__dataclass_fields__"):
                 args[original_field_name] = instances[field_type]
             else:
-                value = getattr(self, prefixed_field_name)
-                if callable(value):
-                    # to handle default factory values
-                    value = value()
-                args[original_field_name] = value
+                args[original_field_name] = getattr(self, prefixed_field_name)
 
         instances[_cls] = _cls(**args)
 
     return instances[sorted_classes[0]]
 
 
-@classmethod
-def create_from_cli_args(cls) -> Any:
+def _create_from_cli_args(cls) -> Any:
     """
     This function is dynamically mapped to FlatClass as a class method.
     """
@@ -93,47 +85,59 @@ def create_from_cli_args(cls) -> Any:
 
     for field in fields(cls):
         nargs = None
-        action = None
         field_type = field.type
-        help_text = cls.metadata_mapping[field.name].get("help", None)
+        help_text = field.metadata.get("help", None)
 
-        if is_list(field.type):
+        if isinstance(field.type, type) and is_list(field.type):
             assert is_composed_of_primitives(field.type)
             field_type = get_args(field.type)[0]
             if is_primitive_type(field_type):
                 nargs = "+"
             else:
                 field_type = json.loads
-        elif is_dict(field.type):
+        elif isinstance(field.type, type) and is_dict(field.type):
             assert is_composed_of_primitives(field.type)
             field_type = json.loads
-        elif is_bool(field.type):
-            action = BooleanOptionalAction
-
-        arg_params = {
-            "type": field_type,
-            "action": action,
-            "help": help_text,
-        }
+        elif field.type == bool:
+            field_type = lambda x: x.lower() == "true"
 
         # handle cases with default and default factory args
         if field.default is not MISSING:
-            value = field.default
-            if callable(value):
-                value = value()
-            arg_params["default"] = value
+            parser.add_argument(
+                f"--{field.name}",
+                type=field_type,
+                default=field.default,
+                nargs=nargs,
+                help=help_text,
+            )
         elif field.default_factory is not MISSING:
-            arg_params["default"] = field.default_factory()
+            parser.add_argument(
+                f"--{field.name}",
+                type=field_type,
+                default=field.default_factory(),
+                nargs=nargs,
+                help=help_text,
+            )
         else:
-            arg_params["required"] = True
-
-        if nargs:
-            arg_params["nargs"] = nargs
-        parser.add_argument(f"--{field.name}", **arg_params)
+            parser.add_argument(
+                f"--{field.name}",
+                type=field_type,
+                required=True,
+                nargs=nargs,
+                help=help_text,
+            )
 
     args = parser.parse_args()
 
     return cls(**vars(args))
+
+
+def get_config_class_by_type_name(config_class: Any, type_name: str) -> Any:
+    for subclass in get_all_subclasses(config_class):
+        if subclass.get_type().value == type_name:
+            return subclass
+
+    raise ValueError(f"Config class with name {type_name} not found.")
 
 
 def create_flat_dataclass(input_dataclass: Any) -> Any:
@@ -141,14 +145,12 @@ def create_flat_dataclass(input_dataclass: Any) -> Any:
     Creates a new FlatClass type by recursively flattening the input dataclass.
     This allows for easy parsing of command line arguments along with storing/loading the configuration to/from a file.
     """
-    meta_fields_with_defaults = []
-    meta_fields_without_defaults = []
+    meta_fields = []
     processed_classes = set()
     dataclass_args = defaultdict(list)
     dataclass_dependencies = defaultdict(set)
-    metadata_mapping = {}
 
-    def process_dataclass(_input_dataclass, prefix=""):
+    def process_dataclass(_input_dataclass: Any, prefix=""):
         if _input_dataclass in processed_classes:
             return
 
@@ -157,8 +159,9 @@ def create_flat_dataclass(input_dataclass: Any) -> Any:
         for field in fields(_input_dataclass):
             prefixed_name = f"{prefix}{field.name}"
 
-            if is_optional(field.type):
-                field_type = get_inner_type(field.type)
+            if isinstance(field.type, type) and is_optional(field.type):
+                inner = get_inner_type(field.type)
+                field_type = inner
             else:
                 field_type = field.type
 
@@ -169,11 +172,15 @@ def create_flat_dataclass(input_dataclass: Any) -> Any:
                 )
 
                 type_field_name = f"{field.name}_type"
-                default_value = str(field.default_factory().get_type())
-                meta_fields_with_defaults.append(
-                    (type_field_name, type(default_value), default_value)
+                assert field.default_factory is not MISSING
+                default_value = field.default_factory().get_type()
+                meta_fields.append(
+                    (
+                        type_field_name,
+                        type(default_value),
+                        dataclass_field(default=default_value, metadata=field.metadata),
+                    )
                 )
-                metadata_mapping[type_field_name] = field.metadata
 
                 assert hasattr(field_type, "__dataclass_fields__")
                 for subclass in get_all_subclasses(field_type):
@@ -187,9 +194,10 @@ def create_flat_dataclass(input_dataclass: Any) -> Any:
                 dataclass_args[_input_dataclass].append(
                     (field.name, field.name, field_type)
                 )
-                process_dataclass(field_type, f"{to_snake_case(field_type.__name__)}_")
+                process_dataclass(field_type, f"{to_snake_case(field_type.__name__)}_")  # type: ignore
                 continue
 
+            # Normal field: keep default or default factory if any
             field_default = field.default if field.default is not MISSING else MISSING
             field_default_factory = (
                 field.default_factory
@@ -198,33 +206,49 @@ def create_flat_dataclass(input_dataclass: Any) -> Any:
             )
 
             if field_default is not MISSING:
-                meta_fields_with_defaults.append(
-                    (prefixed_name, field_type, field_default)
+                meta_fields.append(
+                    (
+                        prefixed_name,
+                        field_type,
+                        dataclass_field(default=field.default, metadata=field.metadata),
+                    )
                 )
             elif field_default_factory is not MISSING:
-                meta_fields_with_defaults.append(
-                    (prefixed_name, field_type, field_default_factory)
+                meta_fields.append(
+                    (
+                        prefixed_name,
+                        field_type,
+                        dataclass_field(
+                            default_factory=field.default_factory,
+                            metadata=field.metadata,
+                        ),
+                    )
                 )
             else:
-                meta_fields_without_defaults.append((prefixed_name, field_type))
+                meta_fields.append(
+                    (
+                        prefixed_name,
+                        field_type,
+                        dataclass_field(metadata=field.metadata),
+                    )
+                )
 
             dataclass_args[_input_dataclass].append(
                 (prefixed_name, field.name, field_type)
             )
-            metadata_mapping[prefixed_name] = field.metadata
 
     process_dataclass(input_dataclass)
 
-    meta_fields = meta_fields_without_defaults + meta_fields_with_defaults
-    FlatClass = make_dataclass("FlatClass", meta_fields)
+    # Sort fields to ensure non-default args come first
+    sorted_meta_fields = sorted(meta_fields, key=lambda x: x[2].default is not MISSING)
 
-    # Metadata fields
-    FlatClass.dataclass_args = dataclass_args
-    FlatClass.dataclass_dependencies = dataclass_dependencies
-    FlatClass.metadata_mapping = metadata_mapping
+    FlatClass = make_dataclass("FlatClass", sorted_meta_fields)
 
-    # Helper methods
-    FlatClass.reconstruct_original_dataclass = reconstruct_original_dataclass
-    FlatClass.create_from_cli_args = create_from_cli_args
+    setattr(FlatClass, "dataclass_args", dataclass_args)
+    setattr(FlatClass, "dataclass_dependencies", dataclass_dependencies)
+    setattr(
+        FlatClass, "reconstruct_original_dataclass", _reconstruct_original_dataclass
+    )
+    setattr(FlatClass, "create_from_cli_args", classmethod(_create_from_cli_args))
 
     return FlatClass

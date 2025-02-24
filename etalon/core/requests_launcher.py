@@ -38,6 +38,9 @@ class RequestsLauncher:
 
     def run_client(self, client_id: int) -> None:
         """Run the client."""
+        assert self.client_config.tokenizer is not None
+        assert self.client_config.model is not None
+
         self.llm_clients[client_id] = construct_client(
             model_name=self.client_config.model,
             tokenizer_name=self.client_config.tokenizer,

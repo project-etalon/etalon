@@ -13,7 +13,7 @@ def generate_random_prompt(
     tokenizer: Union[PreTrainedTokenizer, PreTrainedTokenizerFast],
     num_prompt_tokens: int = 1024,
     num_output_tokens: int = 128,
-    corpus_lines: List[str] = None,
+    corpus_lines: Union[List[str], None] = None,
 ) -> Tuple[str, int]:
     """Generate a random prompt with a given number of tokens.
 

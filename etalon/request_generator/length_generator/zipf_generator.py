@@ -2,6 +2,7 @@ from typing import Tuple
 
 import numpy as np
 
+from etalon.config.config import ZipfRequestLengthGeneratorConfig
 from etalon.request_generator.length_generator.base_generator import (
     BaseRequestLengthGenerator,
 )
@@ -53,8 +54,8 @@ class ZipfGenerator:
 
 
 class ZipfRequestLengthGenerator(BaseRequestLengthGenerator):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, config: ZipfRequestLengthGeneratorConfig):
+        self.config = config
 
         self._zipf_generator = ZipfGenerator(
             self.config.min_tokens,

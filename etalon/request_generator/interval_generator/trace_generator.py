@@ -1,5 +1,6 @@
 import pandas as pd
 
+from etalon.config.config import TraceRequestIntervalGeneratorConfig
 from etalon.logger import init_logger
 from etalon.request_generator.interval_generator.base_generator import (
     BaseRequestIntervalGenerator,
@@ -14,8 +15,8 @@ class TraceRequestIntervalGenerator(BaseRequestIntervalGenerator):
     inter-request times, number of tokens.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, config: TraceRequestIntervalGeneratorConfig):
+        self.config = config
 
         trace_file = self.config.trace_file
         # load into a pd dataframe
@@ -39,7 +40,7 @@ class TraceRequestIntervalGenerator(BaseRequestIntervalGenerator):
         )
 
         # compute the inter-request time
-        self.trace_df["inter_request_time"] = self.trace_df["arrival_time"].diff()
+        self.trace_df["inter_request_time"] = self.trace_df["arrival_time"].diff()  # type: ignore
 
         self.next_request_idx = 1
 
@@ -49,7 +50,7 @@ class TraceRequestIntervalGenerator(BaseRequestIntervalGenerator):
 
     def get_next_inter_request_time(self) -> float:
         if self.next_request_idx >= len(self.trace_df):
-            return None
+            return -1
 
         inter_request_time = self.trace_df.iloc[self.next_request_idx][
             "inter_request_time"

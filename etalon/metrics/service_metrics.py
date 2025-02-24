@@ -59,6 +59,7 @@ class ServiceMetrics:
         self.end_time = time.perf_counter()
 
     def should_stop(self):
+        assert self.start_time is not None
         return not (
             time.monotonic() - self.start_time < self.timeout
             and self.num_completed_requests < self.max_requests

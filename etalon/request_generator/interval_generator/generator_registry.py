@@ -10,7 +10,7 @@ from .trace_generator import TraceRequestIntervalGenerator
 class RequestIntervalGeneratorRegistry(BaseRegistry):
     @classmethod
     def get_key_from_str(cls, key_str: str) -> RequestIntervalGeneratorType:
-        return RequestIntervalGeneratorType.from_str(key_str)
+        return RequestIntervalGeneratorType.from_str(key_str)  # type: ignore
 
 
 RequestIntervalGeneratorRegistry.register(

@@ -32,7 +32,7 @@ class ServerConfig:
 class ModelConfig:
     name: str
     identifier: str
-    tokenizer: str = None
+    tokenizer: Optional[str] = None
     parallel_specs: List[str] = field(default_factory=list)
     traces: List[str] = field(default_factory=list)
 
@@ -54,7 +54,7 @@ class ModelConfig:
     def is_parallel_spec_valid(self, spec_name: str) -> bool:
         return not self.parallel_specs or spec_name in self.parallel_specs
 
-    def is_trace_valid(self, trace_name: str) -> bool:
+    def is_trace_valid(self, trace_name: Optional[str]) -> bool:
         return not self.traces or trace_name in self.traces
 
 
@@ -348,9 +348,9 @@ class JobConfig:
 
 @dataclass
 class BenchmarkConfig:
-    output_dir: Optional[str] = None
-    qps: Optional[float] = None
-    should_use_given_dir: Optional[bool] = True
+    output_dir: str
+    qps: float
+    should_use_given_dir: bool = True
     ttft_deadline: Optional[float] = None
     tbt_deadline: Optional[float] = None
     ttft_slack: Optional[float] = None

@@ -1,12 +1,16 @@
 import random
 from typing import Tuple
 
+from etalon.config.config import UniformRequestLengthGeneratorConfig
 from etalon.request_generator.length_generator.base_generator import (
     BaseRequestLengthGenerator,
 )
 
 
 class UniformRequestLengthGenerator(BaseRequestLengthGenerator):
+    def __init__(self, config: UniformRequestLengthGeneratorConfig):
+        self.config = config
+
     def get_next_num_tokens(self) -> Tuple[float, float]:
         total_tokens = random.uniform(
             self.config.min_tokens,

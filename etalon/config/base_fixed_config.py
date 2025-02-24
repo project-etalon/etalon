@@ -27,3 +27,13 @@ class BaseFixedConfig(ABC):
             if str(subclass.get_type()) == type_str:
                 return subclass()
         raise ValueError(f"[{cls.__name__}] Invalid type string: {type_str}")
+
+    @classmethod
+    def get_type(cls) -> Any:
+        raise NotImplementedError(
+            f"[{cls.__name__}] get_type() method is not implemented"
+        )
+
+    @classmethod
+    def get_name(cls) -> str:
+        return cls.__name__

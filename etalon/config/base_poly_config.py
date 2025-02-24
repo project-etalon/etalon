@@ -13,3 +13,9 @@ class BasePolyConfig(ABC):
             if subclass.get_type() == type_:
                 return subclass()
         raise ValueError(f"Invalid type: {type_}")
+
+    @classmethod
+    def get_type(cls) -> Any:
+        raise NotImplementedError(
+            f"[{cls.__name__}] get_type() method is not implemented"
+        )

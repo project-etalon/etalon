@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -112,7 +112,9 @@ class CDFSketch:
             wand_table = wandb.Table(dataframe=df)
             wandb.log({f"{plot_name}_table": wand_table}, step=0)
 
-    def plot_cdf(self, path: str, plot_name: str, x_axis_label: str = None) -> None:
+    def plot_cdf(
+        self, path: str, plot_name: str, x_axis_label: Optional[str] = None
+    ) -> None:
         if self.sketch._count == 0:
             return
 
@@ -148,7 +150,7 @@ class CDFSketch:
         fig.write_image(f"{path}/{plot_name}.png")
         self._save_df(df, path, plot_name)
 
-    def get_summary(self) -> Dict[str, float]:
+    def get_summary(self) -> Dict[str, Optional[float]]:
         return (
             {
                 f"{self.metric_name} (Mean)": self.sketch.avg,

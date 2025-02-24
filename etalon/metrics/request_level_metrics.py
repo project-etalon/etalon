@@ -60,6 +60,7 @@ class RequestLevelMetrics:
         ttft_deadline = self.ttft_deadline
 
         if self.use_predictions_for_ttft:
+            assert self.prefill_predictions is not None, "Predictions are not available"
             ttft_deadline = (
                 self.prefill_predictions[request_metrics.num_total_tokens]
                 + self.ttft_slack

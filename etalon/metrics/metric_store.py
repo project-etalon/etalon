@@ -132,15 +132,17 @@ class MetricStore:
             self.num_completed_requests += 1
 
         for metric_name, cdf_sketch in self.summaries.items():
+            ttft_deadline = self.ttft_deadline
+            if self.use_predictions_for_ttft:
+                assert self.prefill_predictions is not None, "Predictions not found"
+                ttft_deadline = (
+                    self.prefill_predictions[request_metrics.num_total_tokens]
+                    + self.ttft_slack
+                )
             if metric_name == "tbt":
                 cdf_sketch.extend(request_metrics.inter_token_times[1:])
             elif metric_name == "deadline_miss_rate":
                 ttft_deadline = self.ttft_deadline
-                if self.use_predictions_for_ttft:
-                    ttft_deadline = (
-                        self.prefill_predictions[request_metrics.num_total_tokens]
-                        + self.ttft_slack
-                    )
                 (
                     deadline_miss_rate,
                     missed_deadlines,

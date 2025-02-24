@@ -4,7 +4,7 @@ import re
 from abc import ABC
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 import joblib
 import numpy as np
@@ -13,7 +13,6 @@ from sklearn.preprocessing import PolynomialFeatures
 
 from etalon.config.base_poly_config import BasePolyConfig
 from etalon.config.flat_dataclass import create_flat_dataclass
-from etalon.config.utils import dataclass_to_dict
 from etalon.constants.prefill_constants import PREFILL_POLYNOMIAL_DEGREE
 from etalon.core.llm_clients import SUPPORTED_APIS
 from etalon.logger import init_logger
@@ -51,8 +50,8 @@ class TraceRequestIntervalGeneratorConfig(BaseRequestIntervalGeneratorConfig):
         metadata={"help": "Factor to scale the time intervals in the trace."},
     )
 
-    @staticmethod
-    def get_type():
+    @classmethod
+    def get_type(cls):
         return RequestIntervalGeneratorType.TRACE
 
 
@@ -63,8 +62,8 @@ class PoissonRequestIntervalGeneratorConfig(BaseRequestIntervalGeneratorConfig):
         metadata={"help": "Queries per second for the Poisson distribution."},
     )
 
-    @staticmethod
-    def get_type():
+    @classmethod
+    def get_type(cls):
         return RequestIntervalGeneratorType.POISSON
 
 
@@ -78,15 +77,15 @@ class GammaRequestIntervalGeneratorConfig(BaseRequestIntervalGeneratorConfig):
         metadata={"help": "Coefficient of variation for the Gamma distribution."},
     )
 
-    @staticmethod
-    def get_type():
+    @classmethod
+    def get_type(cls):
         return RequestIntervalGeneratorType.GAMMA
 
 
 @dataclass
 class StaticRequestIntervalGeneratorConfig(BaseRequestIntervalGeneratorConfig):
-    @staticmethod
-    def get_type():
+    @classmethod
+    def get_type(cls):
         return RequestIntervalGeneratorType.STATIC
 
 
@@ -113,8 +112,8 @@ class TraceRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
         default=1, metadata={"help": "Scale factor for decode tokens."}
     )
 
-    @staticmethod
-    def get_type():
+    @classmethod
+    def get_type(cls):
         return RequestLengthGeneratorType.TRACE
 
 
@@ -133,8 +132,8 @@ class ZipfRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
         default=20.0, metadata={"help": "Ratio of prefill tokens to decode tokens."}
     )
 
-    @staticmethod
-    def get_type():
+    @classmethod
+    def get_type(cls):
         return RequestLengthGeneratorType.ZIPF
 
 
@@ -147,8 +146,8 @@ class UniformRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
         default=20.0, metadata={"help": "Ratio of prefill tokens to decode tokens."}
     )
 
-    @staticmethod
-    def get_type():
+    @classmethod
+    def get_type(cls):
         return RequestLengthGeneratorType.UNIFORM
 
 
@@ -161,8 +160,8 @@ class FixedRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
         default=512, metadata={"help": "Number of decode tokens."}
     )
 
-    @staticmethod
-    def get_type():
+    @classmethod
+    def get_type(cls):
         return RequestLengthGeneratorType.FIXED
 
 
@@ -185,11 +184,11 @@ class SyntheticRequestGeneratorConfig(BaseRequestGeneratorConfig):
         default=64, metadata={"help": "Number of requests to generate."}
     )
     duration: float = field(
-        default=None, metadata={"help": "Duration of the synthetic request generation."}
+        default=100, metadata={"help": "Duration of the synthetic request generation."}
     )
 
-    @staticmethod
-    def get_type():
+    @classmethod
+    def get_type(cls):
         return RequestGeneratorType.SYNTHETIC
 
 
@@ -215,8 +214,8 @@ class TraceRequestGeneratorConfig(BaseRequestGeneratorConfig):
         default=4096, metadata={"help": "Maximum number of tokens allowed."}
     )
 
-    @staticmethod
-    def get_type():
+    @classmethod
+    def get_type(cls):
         return RequestGeneratorType.TRACE
 
 
@@ -226,7 +225,7 @@ class ClientConfig:
         default="gpt-3.5-turbo",
         metadata={"help": "The model to use for this load test."},
     )
-    tokenizer: str = field(
+    tokenizer: Optional[str] = field(
         default=None,
         metadata={
             "help": "The tokenizer to use for this load test. By default, the tokenizer is inferred from the model."
@@ -258,6 +257,14 @@ class ClientConfig:
         metadata={"help": "The address append value for OpenAI API."},
     )
 
+    def __post_init__(self):
+        self.additional_sampling_params_dict = {}
+
+        if self.additional_sampling_params:
+            self.additional_sampling_params_dict = json.loads(
+                self.additional_sampling_params
+            )
+
 
 @dataclass
 class MetricsConfig:
@@ -275,15 +282,15 @@ class MetricsConfig:
         default=False,
         metadata={"help": "Whether to write metrics to wandb."},
     )
-    wandb_project: str = field(
+    wandb_project: Optional[str] = field(
         default=None,
         metadata={"help": "The wandb project to log metrics to."},
     )
-    wandb_group: str = field(
+    wandb_group: Optional[str] = field(
         default=None,
         metadata={"help": "The wandb group to log metrics to."},
     )
-    wandb_run_name: str = field(
+    wandb_run_name: Optional[str] = field(
         default=None,
         metadata={"help": "The wandb run name to log metrics to."},
     )
@@ -342,6 +349,8 @@ class PrefillProfilerConfig:
         if not os.path.exists(model_path):
             logger.error(f"Predictor not found at {model_path}. Exiting.")
             return
+
+        self.predictions = {}
 
         model: RandomForestRegressor = joblib.load(model_path)
         transformer = PolynomialFeatures(
@@ -454,13 +463,6 @@ class BenchmarkConfig(ABC):
                 self.metrics_config.output_dir, benchmark_identifier, self.timestamp
             )
 
-        if self.client_config.additional_sampling_params:
-            self.client_config.additional_sampling_params = json.loads(
-                self.client_config.additional_sampling_params
-            )
-        else:
-            self.client_config.additional_sampling_params = {}
-
         if self.prefill_profiler_config.use_predictions_for_ttft:
             self.prefill_profiler_config.max_prefill_tokens_to_predict = max(
                 self.prefill_profiler_config.max_prefill_tokens_to_predict,
@@ -482,11 +484,10 @@ class BenchmarkConfig(ABC):
             logger.warning("Flat config not found. Returning the original config.")
             return self.__dict__
 
-        return self.__flat_config__.__dict__
+        return self.__flat_config__.__dict__  # type: ignore
 
     def write_config_to_file(self):
-        config_dict = dataclass_to_dict(self)
         with open(
             os.path.join(f"{self.metrics_config.output_dir}", "config.json"), "w"
         ) as f:
-            json.dump(config_dict, f, indent=4)
+            json.dump(self.to_dict(), f, indent=4)

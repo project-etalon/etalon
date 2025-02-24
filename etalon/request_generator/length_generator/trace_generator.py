@@ -3,6 +3,7 @@ from typing import Tuple
 import numpy as np
 import pandas as pd
 
+from etalon.config.config import TraceRequestLengthGeneratorConfig
 from etalon.logger import init_logger
 from etalon.request_generator.length_generator.base_generator import (
     BaseRequestLengthGenerator,
@@ -12,8 +13,8 @@ logger = init_logger(__name__)
 
 
 class TraceRequestLengthGenerator(BaseRequestLengthGenerator):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, config: TraceRequestLengthGeneratorConfig):
+        self.config = config
 
         trace_file = self.config.trace_file
         self.trace_df = pd.read_csv(trace_file)
@@ -87,7 +88,7 @@ class TraceRequestLengthGenerator(BaseRequestLengthGenerator):
 
     def get_next_num_tokens(self) -> Tuple[float, float]:
         if self.next_request_idx >= len(self.trace_df):
-            return None, None
+            return -1, -1
 
         row = self.trace_df.iloc[self.next_request_idx]
         self.next_request_idx += 1

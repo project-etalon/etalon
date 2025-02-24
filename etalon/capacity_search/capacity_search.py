@@ -2,7 +2,7 @@ import argparse
 import glob
 import json
 import os
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import wandb
@@ -36,21 +36,21 @@ class CapacitySearch:
     def _run_benchmark(self, benchmark_config: BenchmarkConfig):
         run(self.job_config, benchmark_config)
 
-    def _get_result_file(self, run_dir: str, metric_name: str) -> str:
+    def _get_result_file(self, run_dir: str, metric_name: str) -> Optional[str]:
         files = glob.glob(os.path.join(run_dir, f"{metric_name}.csv"))
         if len(files) == 0:
             return None
 
         return files[0]
 
-    def _get_request_level_metrics(self, run_dir: str) -> str:
+    def _get_request_level_metrics(self, run_dir: str) -> Optional[str]:
         files = glob.glob(os.path.join(run_dir, f"request_level_metrics.json"))
         if len(files) == 0:
             return None
 
         return files[0]
 
-    def _get_service_level_metrics(self, run_dir: str) -> str:
+    def _get_service_level_metrics(self, run_dir: str) -> Optional[str]:
         files = glob.glob(os.path.join(run_dir, f"service_level_metrics.json"))
         if len(files) == 0:
             return None
@@ -59,7 +59,7 @@ class CapacitySearch:
 
     def _use_deadline_based_slo(
         self, request_level_metrics_file: str
-    ) -> Tuple[bool, float, float, float]:
+    ) -> Tuple[bool, float]:
         with open(request_level_metrics_file, "r") as f:
             request_level_metrics = json.load(f)
 
@@ -121,7 +121,9 @@ class CapacitySearch:
         self,
         request_level_metrics_file: str,
         benchmark_config: BenchmarkConfig,
-    ) -> Tuple[bool, float, float, float, float, str]:
+    ) -> Tuple[
+        bool, Optional[float], Optional[float], Optional[float], Optional[float], str
+    ]:
         is_under_sla = False
         tbt = None
         ttft = None
@@ -159,7 +161,11 @@ class CapacitySearch:
             benchmark_config.get_run_id(),
         )
 
-    def is_under_sla(self, qps: float) -> Tuple[bool, float, float, float, float, str]:
+    def is_under_sla(
+        self, qps: float
+    ) -> Tuple[
+        bool, Optional[float], Optional[float], Optional[float], Optional[float], str
+    ]:
         job_config_key = self.job_config.get_key()
         slo_key = "tbtslo{}_ttftslo{}_tpotslo{}_ttftslackslo{}_deadlinemissrateslo{}_dynamicttftslo{}".format(
             self.args.tbt_slo,
@@ -177,10 +183,10 @@ class CapacitySearch:
         benchmark_config = BenchmarkConfig(
             output_dir=os.path.join(
                 self.args.output_dir,
-                self.job_config.server_config.openai_server_engine,
+                str(self.job_config.server_config.openai_server_engine),
                 self.job_config.model_config.name,
                 # f"ttft_slack_{self.args.ttft_slack_slo}_tbt_{self.args.tbt_slo}",
-                self.job_config.request_generator_config.trace_file_name,
+                str(self.job_config.request_generator_config.trace_file_name),
                 f"{hash_key}_q{qps}",
             ),
             qps=qps,

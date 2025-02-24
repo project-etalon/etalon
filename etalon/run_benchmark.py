@@ -7,7 +7,7 @@ import time
 from multiprocessing import Queue
 from queue import Empty
 from threading import Thread
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List, Optional
 
 from tqdm import tqdm
 
@@ -37,14 +37,18 @@ logger = init_logger(__name__)
 def get_request_params(
     client_config: ClientConfig,
     tokenizer: Any,
-    request_length_generator: Optional[BaseRequestLengthGenerator] = None,
-    corpus_lines: List[str] = None,
+    request_length_generator: BaseRequestLengthGenerator,
+    corpus_lines: Optional[List[str]] = None,
     request_id: Optional[int] = None,
-) -> Dict[str, Any]:
+) -> RequestConfig:
     (
         num_prompt_tokens,
         num_output_tokens,
     ) = request_length_generator.get_next_num_tokens()
+    if num_prompt_tokens < 0 or num_output_tokens < 0:
+        logger.error(
+            f"Invalid number of tokens generated: prompt={num_prompt_tokens}, output={num_output_tokens} (potentially from trace request length generator)."
+        )
     num_prompt_tokens = int(num_prompt_tokens)
     num_output_tokens = int(num_output_tokens)
     prompt = generate_random_prompt(
@@ -54,7 +58,7 @@ def get_request_params(
         corpus_lines=corpus_lines,
     )
     default_sampling_params = {"max_tokens": num_output_tokens}
-    default_sampling_params.update(client_config.additional_sampling_params)
+    default_sampling_params.update(client_config.additional_sampling_params_dict)
     request_config = RequestConfig(
         model=client_config.model,
         prompt=prompt,
@@ -113,6 +117,13 @@ def dispatch_requests(
             next_request_interval = (
                 requests_interval_generator.get_next_inter_request_time()
             )
+
+            if next_request_interval < 0:
+                logger.warning(
+                    f"Invalid interval {next_request_interval} (potentially from trace interval generator). Stopping the main loop."
+                )
+                break
+
             while not stop_event.is_set():
                 if time.monotonic() - request_start_time >= next_request_interval:
                     break
@@ -144,17 +155,20 @@ def process_results(
 
 def run_main_loop(
     benchmark_config: BenchmarkConfig,
-    requests_interval_generator: Optional[BaseRequestIntervalGenerator] = None,
-    requests_length_generator: Optional[BaseRequestLengthGenerator] = None,
-    service_metrics: ServiceMetrics = None,
-    corpus_lines: List[str] = None,
-    generated_texts: List[str] = None,
-    pbar: tqdm = None,
+    requests_interval_generator: BaseRequestIntervalGenerator,
+    requests_length_generator: BaseRequestLengthGenerator,
+    service_metrics: ServiceMetrics,
+    corpus_lines: List[str],
+    generated_texts: List[str],
+    pbar: tqdm,
 ):
     """Run the main loop for the benchmark."""
 
     logger.info("Starting the main loop.")
 
+    assert (
+        benchmark_config.client_config.tokenizer is not None
+    ), "Tokenizer is required."
     tokenizer = get_tokenizer(
         tokenizer_name=benchmark_config.client_config.tokenizer,
         trust_remote_code=True,
@@ -224,7 +238,7 @@ def run_main_loop(
 
 def run_benchmark(
     benchmark_config: BenchmarkConfig,
-) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+):
     """Get the token throughput and latencies for the given model.
 
     Args:

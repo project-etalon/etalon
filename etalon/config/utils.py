@@ -1,3 +1,4 @@
+from dataclasses import fields, is_dataclass
 from typing import Union, get_args, get_origin
 
 primitive_types = {int, str, float, bool, type(None)}
@@ -52,9 +53,35 @@ def is_dict(field_type: type) -> bool:
     return get_origin(field_type) is dict
 
 
+def is_bool(field_type: type) -> bool:
+    return field_type is bool
+
+
 def get_inner_type(field_type: type) -> type:
     return next(t for t in get_args(field_type) if t is not type(None))
 
 
 def is_subclass(cls, parent: type) -> bool:
     return hasattr(cls, "__bases__") and parent in cls.__bases__
+
+
+def dataclass_to_dict(obj):
+    if isinstance(obj, list):
+        return [dataclass_to_dict(item) for item in obj]
+    elif is_dataclass(obj):
+        data = {}
+        for field in fields(obj):
+            value = getattr(obj, field.name)
+            data[field.name] = dataclass_to_dict(value)
+        # Include members created in __post_init__
+        for key, value in obj.__dict__.items():
+            if key not in data:
+                data[key] = dataclass_to_dict(value)
+        # Include the name of the class
+        if hasattr(obj, "get_type") and callable(getattr(obj, "get_type")):
+            data["name"] = str(obj.get_type())
+        elif hasattr(obj, "get_name") and callable(getattr(obj, "get_name")):
+            data["name"] = obj.get_name()
+        return data
+    else:
+        return obj

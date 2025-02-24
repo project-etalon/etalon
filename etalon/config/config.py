@@ -13,6 +13,7 @@ from sklearn.preprocessing import PolynomialFeatures
 
 from etalon.config.base_poly_config import BasePolyConfig
 from etalon.config.flat_dataclass import create_flat_dataclass
+from etalon.config.utils import dataclass_to_dict
 from etalon.constants.prefill_constants import PREFILL_POLYNOMIAL_DEGREE
 from etalon.core.llm_clients import SUPPORTED_APIS
 from etalon.logger import init_logger
@@ -265,6 +266,9 @@ class ClientConfig:
                 self.additional_sampling_params
             )
 
+        if self.tokenizer is None:
+            self.tokenizer = self.model
+
 
 @dataclass
 class MetricsConfig:
@@ -451,9 +455,6 @@ class BenchmarkConfig(ABC):
         if not os.path.exists(self.metrics_config.output_dir):
             os.makedirs(self.metrics_config.output_dir)
 
-        if self.client_config.tokenizer is None:
-            self.client_config.tokenizer = self.client_config.model
-
         if not self.metrics_config.should_use_given_dir:
             benchmark_identifier = f"{self.client_config.model}_{self.request_interval_generator_config.get_type()}_{self.request_length_generator_config.get_type()}"
             benchmark_identifier = re.sub(r"[^\w\d-]+", "-", benchmark_identifier)
@@ -487,7 +488,8 @@ class BenchmarkConfig(ABC):
         return self.__flat_config__.__dict__  # type: ignore
 
     def write_config_to_file(self):
+        config_dict = dataclass_to_dict(self)
         with open(
             os.path.join(f"{self.metrics_config.output_dir}", "config.json"), "w"
         ) as f:
-            json.dump(self.to_dict(), f, indent=4)
+            json.dump(config_dict, f, indent=4)

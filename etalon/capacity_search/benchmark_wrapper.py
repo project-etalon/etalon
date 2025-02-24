@@ -1,5 +1,5 @@
 """
-    This file contains the wrapper for the benchmarking.
+This file contains the wrapper for the benchmarking.
 """
 
 import os

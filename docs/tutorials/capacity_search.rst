@@ -39,7 +39,7 @@ Fluidity-Index Based SLO
 
     ``--profile-dir`` should point to where ``prefill_predictor.pkl`` model (obtained when running prefill profiler) is stored for a given model and open source system.
 
-If you wnat to run capacity search without prefill profiler, i.e., use fixed TTFT slo, use the following flag:
+If you want to run capacity search without prefill profiler, i.e., use fixed TTFT slo, use the following flag:
 
 .. code-block:: shell
 

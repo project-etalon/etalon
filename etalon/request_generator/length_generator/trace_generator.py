@@ -1,9 +1,12 @@
+import ast
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
 
-from etalon.config.config import TraceRequestLengthGeneratorConfig
+from etalon.config.config import (
+    TraceRequestLengthGeneratorConfig,
+)
 from etalon.logger import init_logger
 from etalon.request_generator.length_generator.base_generator import (
     BaseRequestLengthGenerator,
@@ -97,3 +100,24 @@ class TraceRequestLengthGenerator(BaseRequestLengthGenerator):
             row["num_prefill_tokens"],
             row["num_decode_tokens"],
         )
+
+
+class PrefixRequestLengthGenerator(TraceRequestLengthGenerator):
+
+    def __init__(self, config: TraceRequestLengthGeneratorConfig):
+        super().__init__(config)
+
+        assert "hash_ids" in self.trace_df.columns
+
+        if self.trace_df["hash_ids"].dtype == str:
+            self.trace_df["hash_ids"] = self.trace_df["hash_ids"].apply(
+                ast.literal_eval
+            )
+
+    def get_next_request_params(self) -> Tuple[list[str], int, int]:
+        if self.next_request_idx >= len(self.trace_df):
+            return [], -1, -1
+
+        row = self.trace_df.iloc[self.next_request_idx]
+
+        return (row["hash_ids"], row["num_prefill_tokens"], row["num_decode_tokens"])

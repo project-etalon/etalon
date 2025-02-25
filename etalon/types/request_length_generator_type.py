@@ -6,3 +6,4 @@ class RequestLengthGeneratorType(BaseIntEnum):
     ZIPF = 2
     TRACE = 3
     FIXED = 4
+    PREFIX = 5

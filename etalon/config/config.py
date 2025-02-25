@@ -114,8 +114,16 @@ class TraceRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
     )
 
     @classmethod
-    def get_type(cls):
+    def get_type(cls) -> RequestLengthGeneratorType:
         return RequestLengthGeneratorType.TRACE
+
+
+@dataclass
+class PrefixRequestLengthGeneratorConfig(TraceRequestLengthGeneratorConfig):
+
+    @classmethod
+    def get_type(cls) -> RequestLengthGeneratorType:
+        return RequestLengthGeneratorType.PREFIX
 
 
 @dataclass
@@ -134,7 +142,7 @@ class ZipfRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
     )
 
     @classmethod
-    def get_type(cls):
+    def get_type(cls) -> RequestLengthGeneratorType:
         return RequestLengthGeneratorType.ZIPF
 
 
@@ -148,7 +156,7 @@ class UniformRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
     )
 
     @classmethod
-    def get_type(cls):
+    def get_type(cls) -> RequestLengthGeneratorType:
         return RequestLengthGeneratorType.UNIFORM
 
 
@@ -162,7 +170,7 @@ class FixedRequestLengthGeneratorConfig(BaseRequestLengthGeneratorConfig):
     )
 
     @classmethod
-    def get_type(cls):
+    def get_type(cls) -> RequestLengthGeneratorType:
         return RequestLengthGeneratorType.FIXED
 
 

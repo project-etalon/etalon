@@ -7,13 +7,15 @@ import time
 from multiprocessing import Queue
 from queue import Empty
 from threading import Thread
-from typing import Any, List, Optional
+from typing import Any, List
 
 from tqdm import tqdm
 
-from etalon.config.config import BenchmarkConfig, ClientConfig
+from etalon.config.config import (
+    BenchmarkConfig,
+    ClientConfig,
+)
 from etalon.core.hf_utils import get_tokenizer
-from etalon.core.request_config import RequestConfig
 from etalon.core.requests_launcher import RequestsLauncher
 from etalon.logger import init_logger
 from etalon.metrics.service_metrics import ServiceMetrics
@@ -29,46 +31,12 @@ from etalon.request_generator.length_generator.base_generator import (
 from etalon.request_generator.length_generator.generator_registry import (
     RequestLengthGeneratorRegistry,
 )
-from etalon.request_generator.utils import generate_random_prompt
+from etalon.request_generator.length_generator.trace_generator import (
+    PrefixRequestLengthGenerator,
+)
+from etalon.request_generator.utils import PrefixBasedRequestGenerator, RequestGenerator
 
 logger = init_logger(__name__)
-
-
-def get_request_params(
-    client_config: ClientConfig,
-    tokenizer: Any,
-    request_length_generator: BaseRequestLengthGenerator,
-    corpus_lines: Optional[List[str]] = None,
-    request_id: Optional[int] = None,
-) -> RequestConfig:
-    (
-        num_prompt_tokens,
-        num_output_tokens,
-    ) = request_length_generator.get_next_num_tokens()
-    if num_prompt_tokens < 0 or num_output_tokens < 0:
-        logger.error(
-            f"Invalid number of tokens generated: prompt={num_prompt_tokens}, output={num_output_tokens} (potentially from trace request length generator)."
-        )
-    num_prompt_tokens = int(num_prompt_tokens)
-    num_output_tokens = int(num_output_tokens)
-    prompt = generate_random_prompt(
-        tokenizer=tokenizer,
-        num_prompt_tokens=num_prompt_tokens,
-        num_output_tokens=num_output_tokens,
-        corpus_lines=corpus_lines,
-    )
-    default_sampling_params = {"max_tokens": num_output_tokens}
-    default_sampling_params.update(client_config.additional_sampling_params_dict)
-    request_config = RequestConfig(
-        model=client_config.model,
-        prompt=prompt,
-        sampling_params=default_sampling_params,
-        llm_api=client_config.llm_api,
-        address_append_value=client_config.address_append_value,
-        id=request_id,
-    )
-
-    return request_config
 
 
 def should_send_new_request(
@@ -94,6 +62,19 @@ def dispatch_requests(
     """Thread function to generate and dispatch requests."""
     num_errored_requests_handled = 0
 
+    request_generator_cls = (
+        PrefixBasedRequestGenerator
+        if isinstance(requests_length_generator, PrefixRequestLengthGenerator)
+        else RequestGenerator
+    )
+
+    request_generator = request_generator_cls(
+        client_config=client_config,
+        tokenizer=tokenizer,
+        request_length_generator=requests_length_generator,
+        corpus_lines=corpus_lines.copy(),
+    )
+
     while not stop_event.is_set():
         if should_send_new_request(service_metrics, num_errored_requests_handled):
             request_start_time = time.monotonic()
@@ -104,11 +85,7 @@ def dispatch_requests(
 
             # Create and dispatch request
             service_metrics.register_launched_request()
-            request_config = get_request_params(
-                client_config=client_config,
-                tokenizer=tokenizer,
-                request_length_generator=requests_length_generator,
-                corpus_lines=corpus_lines.copy(),
+            request_config = request_generator.get_request_params(
                 request_id=service_metrics.num_requests,
             )
             input_queue.put(request_config)
